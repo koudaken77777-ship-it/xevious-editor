@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.4</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.5</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.4</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.5</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4288,7 +4288,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.4";
+const EDITOR_RELEASE94 = "1.5";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -22813,6 +22813,20 @@ canvas.slotItem150{width:40px}
 #bugReport172{padding:3px 10px;border-radius:7px;border:1px solid #6d7f8c;background:#24303a;color:#dfe9f0;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
 #bugReport172:hover{background:#34505f}
 #bugReport172.hot{border:2px solid #ff5a5a;background:#3a1414;color:#ffd0d0;animation:remind171 1.6s ease-in-out infinite}
+/* 正式版1.5: 更新確認ボタンと、更新・お知らせの小窓 */
+#updateCheck150{padding:3px 10px;border-radius:7px;border:1px solid #6d7f8c;background:#24303a;color:#dfe9f0;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+#updateCheck150:hover{background:#34505f}
+#updateCheck150.hot{border:2px solid #ffd36d;background:#4b4022;color:#fff4c6;animation:remind171 1.6s ease-in-out infinite}
+#updateDlg150{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;box-sizing:border-box}
+#updateDlg150[hidden]{display:none}
+#updateDlg150 .box{width:min(560px,100%);max-height:min(80vh,100%);display:flex;flex-direction:column;gap:10px;background:#1e2329;border:2px solid #5a7184;border-radius:12px;padding:16px 18px;box-shadow:0 14px 46px rgba(0,0,0,.6);color:#e8f0f6;box-sizing:border-box}
+#updateDlg150 h3{margin:0;font-size:18px;color:#fff4c6}
+#updateDlg150 .body{overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6;background:#151a1f;border:1px solid #3a4a56;border-radius:8px;padding:10px 12px}
+#updateDlg150 .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+#updateDlg150 .btns button{padding:6px 12px;border-radius:7px;border:1px solid #6d7f8c;background:#2a3a46;color:#eef6fb;font-weight:700;cursor:pointer}
+#updateDlg150 .btns button.main{background:#1f5a32;border-color:#4fae6c}
+#updateDlg150 label{font-size:12px;color:#c9d6df;display:flex;align-items:center;gap:6px}
+#updateDlg150 label[hidden]{display:none}
 @keyframes remind171{50%{border-color:#ffd400;color:#fff}}
 .flow6_171 .ipsFile169{width:112px}
 .airDemo171{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin:4px 0 12px}
@@ -23674,6 +23688,104 @@ canvas.slotItem150{width:40px}
   }
   window.romSaveRemindUpdate171=upd; window.__setRomSaveLast171=t=>{ last=t; upd(); };
   setInterval(upd,30000);
+})();
+
+// 正式版1.5: 更新確認（GitHubの最新リリースと版番号を比べる）と、新しい版を初めて開いた時の「変更点」お知らせ。
+// 通信するのは GitHub の公開API（最新リリースの版番号と説明文を読むだけ）。ROMや作った面は送らない。
+(function(){
+  const REPO='koudaken77777-ship-it/xevious-editor';
+  const API='https://api.github.com/repos/'+REPO+'/releases/latest';
+  const DL_URL='https://github.com/'+REPO+'/releases/latest';
+  const WEB_URL='https://koudaken77777-ship-it.github.io/xevious-editor/';
+  const CUR=String(typeof EDITOR_RELEASE94!=='undefined'?EDITOR_RELEASE94:'0');
+  const K_AUTO='XeviousMapEditor:updateAutoCheck150', K_LAST='XeviousMapEditor:updateLastCheck150', K_SKIP='XeviousMapEditor:updateSkip150', K_SEEN='XeviousMapEditor:lastSeenVersion150';
+  const CHECK_EVERY_MS=12*60*60*1000;
+  // 新しい版を出す時は、ここに先頭へ1件追加する。
+  const CHANGELOG=[
+    {v:'1.5',items:['起動時に新しい版が出ていないか確認し、出ていれば変更点とダウンロード先を表示するようにしました（右上の「🔄 更新確認」でいつでも確認できます）。','新しい版を初めて開いた時に、その版の変更点を表示するようにしました。']},
+    {v:'1.4',items:['使われていなかった旧「エミュ起動ヘルパー」との通信処理を削除しました。']},
+    {v:'1.3',items:['広い画面で右側の欄が横に伸びすぎないよう最大幅を設け、マップと右側を画面中央に並べるようにしました。']},
+    {v:'1.2',items:['横幅の狭い画面で右側の欄や右上のボタンが画面外にはみ出す不具合を修正しました。','タブ名が途中で折り返されないようにしました。']},
+    {v:'1.1',items:['マップ欄と右側の境目をドラッグして幅を変えられるようにしました（ダブルクリックで自動の幅に戻ります）。']},
+    {v:'1.0',items:['正式版として公開しました。','作りかけ面を Shift（または Ctrl）＋クリックで複数選び、まとめて削除できるようにしました。']}
+  ];
+  const isWeb=/\.github\.io$/i.test(location.hostname);
+  const lsGet=k=>{ try{ return localStorage.getItem(k); }catch(_){ return null; } };
+  const lsSet=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(_){} };
+  const ver=s=>String(s||'').replace(/^v(er)?\.?/i,'').trim();
+  function cmp(a,b){ const pa=ver(a).split('.').map(n=>parseInt(n,10)||0), pb=ver(b).split('.').map(n=>parseInt(n,10)||0);
+    for(let i=0;i<Math.max(pa.length,pb.length);i++){ const d=(pa[i]||0)-(pb[i]||0); if(d) return d<0?-1:1; } return 0; }
+  const plain=md=>String(md||'').replace(/\r/g,'').replace(/^#+\s*/gm,'■ ').replace(/\*\*/g,'').replace(/`/g,'').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'$1（$2）').trim();
+
+  // 小窓
+  const dlg=document.createElement('div'); dlg.id='updateDlg150'; dlg.hidden=true;
+  dlg.innerHTML='<div class="box" role="dialog" aria-modal="true"><h3></h3><div class="body"></div><label><input type="checkbox"> 起動時に新しい版が出ていないか自動で確認する</label><div class="btns"></div></div>';
+  document.body.appendChild(dlg);
+  const dTitle=dlg.querySelector('h3'), dBody=dlg.querySelector('.body'), dBtns=dlg.querySelector('.btns'), dAuto=dlg.querySelector('input');
+  dAuto.addEventListener('change',()=>lsSet(K_AUTO,dAuto.checked?'1':'0'));
+  dlg.addEventListener('click',e=>{ if(e.target===dlg) close(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!dlg.hidden) close(); });
+  function close(){ dlg.hidden=true; }
+  function open(title,body,buttons,showAuto){
+    dTitle.textContent=title; dBody.textContent=body; dBtns.innerHTML='';
+    for(const b of buttons){ const el=document.createElement('button'); el.type='button'; el.textContent=b.label; if(b.main) el.className='main'; el.addEventListener('click',()=>{ if(b.run) b.run(); close(); }); dBtns.appendChild(el); }
+    dAuto.parentElement.hidden=!showAuto; dAuto.checked=lsGet(K_AUTO)!=='0';
+    dlg.hidden=false;
+  }
+  const go=u=>window.open(u,'_blank','noopener');
+
+  // 右上のボタン
+  const dock=document.querySelector('.titleCapacityDock');
+  const btn=document.createElement('button'); btn.type='button'; btn.id='updateCheck150';
+  btn.textContent='🔄 更新確認'; btn.title=isWeb?'Web版は開くたびに最新版になります。更新履歴を表示します':'GitHubで新しい版が出ていないか確認します';
+  if(dock){ const bug=document.getElementById('bugReport172'); if(bug) dock.insertBefore(btn,bug); else dock.appendChild(btn); }
+  btn.addEventListener('click',()=>check(true));
+
+  function historyText(fromExclusive){
+    return CHANGELOG.filter(c=>!fromExclusive||cmp(c.v,fromExclusive)>0).map(c=>`■ Ver${c.v}\n`+c.items.map(i=>'・'+i).join('\n')).join('\n\n');
+  }
+
+  async function check(manual){
+    if(isWeb){
+      if(manual) open(`Web版は常に最新版です（Ver${CUR}）`,'ページを開き直すだけで最新版になります。\n\n'+historyText(),[{label:'閉じる',main:true}],false);
+      return;
+    }
+    let rel;
+    try{
+      const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),8000);
+      const r=await fetch(API,{headers:{Accept:'application/vnd.github+json'},cache:'no-store',signal:ctrl.signal});
+      clearTimeout(tm);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      rel=await r.json();
+    }catch(e){
+      if(manual) open('更新を確認できませんでした','インターネットにつながっていないか、GitHubに一時的につながりません。\n時間をおいてもう一度お試しください。\n\nダウンロードページから直接確認することもできます。',[{label:'ダウンロードページを開く',run:()=>go(DL_URL)},{label:'閉じる',main:true}],true);
+      return;
+    }
+    lsSet(K_LAST,String(Date.now()));
+    const latest=ver(rel&&rel.tag_name);
+    if(latest&&cmp(latest,CUR)>0){
+      btn.textContent=`🆕 Ver${latest} が出ています`; btn.classList.add('hot');
+      if(!manual&&lsGet(K_SKIP)===latest) return;
+      open(`新しい版 Ver${latest} が出ています（今お使いの版：Ver${CUR}）`,plain(rel.body).slice(0,2000),[
+        {label:'ダウンロードページを開く',main:true,run:()=>go(rel.html_url||DL_URL)},
+        {label:'Web版を開く',run:()=>go(WEB_URL)},
+        {label:'この版は知らせない',run:()=>lsSet(K_SKIP,latest)},
+        {label:'閉じる'}
+      ],true);
+    }else if(manual){
+      open(`最新版をお使いです（Ver${CUR}）`,historyText(),[{label:'閉じる',main:true}],true);
+    }
+  }
+
+  // 新しい版を初めて開いた時は、前に使っていた版からの変更点を表示する（初めて使う人には出さない）。
+  const seen=lsGet(K_SEEN);
+  lsSet(K_SEEN,CUR);
+  if(seen&&cmp(seen,CUR)<0){
+    setTimeout(()=>open(`Ver${CUR} に更新されました`,`前に使っていた版（Ver${ver(seen)}）からの変更点です。\n\n`+historyText(seen),[{label:'閉じる',main:true}],false),800);
+  }else if(!isWeb&&lsGet(K_AUTO)!=='0'){
+    const last=parseInt(lsGet(K_LAST)||'0',10)||0;
+    if(Date.now()-last>CHECK_EVERY_MS) setTimeout(()=>check(false),3000);
+  }
 })();
 </script>
 
