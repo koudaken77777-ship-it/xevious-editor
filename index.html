@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.5</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.6</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.5</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.6</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4288,7 +4288,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.5";
+const EDITOR_RELEASE94 = "1.6";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -23702,6 +23702,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.6',items:['新しい版が出た時のお知らせに「⬇ 今すぐダウンロード」ボタンを追加しました。1回押すだけで新しい版のファイルをダウンロードできます。','お知らせの中に、ダウンロードした後の使い方（開き方・データの引き継ぎ）を表示するようにしました。']},
     {v:'1.5',items:['起動時に新しい版が出ていないか確認し、出ていれば変更点とダウンロード先を表示するようにしました（右上の「🔄 更新確認」でいつでも確認できます）。','新しい版を初めて開いた時に、その版の変更点を表示するようにしました。']},
     {v:'1.4',items:['使われていなかった旧「エミュ起動ヘルパー」との通信処理を削除しました。']},
     {v:'1.3',items:['広い画面で右側の欄が横に伸びすぎないよう最大幅を設け、マップと右側を画面中央に並べるようにしました。']},
@@ -23766,12 +23767,15 @@ canvas.slotItem150{width:40px}
     if(latest&&cmp(latest,CUR)>0){
       btn.textContent=`🆕 Ver${latest} が出ています`; btn.classList.add('hot');
       if(!manual&&lsGet(K_SKIP)===latest) return;
-      open(`新しい版 Ver${latest} が出ています（今お使いの版：Ver${CUR}）`,plain(rel.body).slice(0,2000),[
-        {label:'ダウンロードページを開く',main:true,run:()=>go(rel.html_url||DL_URL)},
-        {label:'Web版を開く',run:()=>go(WEB_URL)},
-        {label:'この版は知らせない',run:()=>lsSet(K_SKIP,latest)},
-        {label:'閉じる'}
-      ],true);
+      // 正式版1.6: リリースに付いている html ファイルを直接ダウンロードできるボタンを一番目立つ位置に置く。
+      const asset=(Array.isArray(rel.assets)?rel.assets:[]).find(a=>/\.html?$/i.test(String(a&&a.name||''))&&/^https:\/\/github\.com\//.test(String(a&&a.browser_download_url||'')));
+      const howTo='【ダウンロードした後は】\n・ダウンロードしたファイル（'+(asset?asset.name:'html ファイル')+'）をダブルクリックすると、新しい版が開きます。\n・同じブラウザで開けば、作りかけ面や純正ROMの登録はそのまま引き継がれます。\n・古い版のファイルは削除してかまいません。';
+      const notes=plain(rel.body).replace(/^■ ダウンロード[\s\S]*?(?=^■ |$(?![\s\S]))/m,'').trim();
+      const buttons=[];
+      if(asset) buttons.push({label:'⬇ 今すぐダウンロード',main:true,run:()=>go(asset.browser_download_url)});
+      buttons.push({label:asset?'詳しく見る（リリースページ）':'ダウンロードページを開く',main:!asset,run:()=>go(rel.html_url||DL_URL)});
+      buttons.push({label:'Web版を開く',run:()=>go(WEB_URL)},{label:'この版は知らせない',run:()=>lsSet(K_SKIP,latest)},{label:'閉じる'});
+      open(`新しい版 Ver${latest} が出ています（今お使いの版：Ver${CUR}）`,(howTo+'\n\n'+notes).slice(0,2400),buttons,true);
     }else if(manual){
       open(`最新版をお使いです（Ver${CUR}）`,historyText(),[{label:'閉じる',main:true}],true);
     }
