@@ -14,7 +14,9 @@
 https://koudaken77777-ship-it.github.io/xevious-editor/
 
 ### ダウンロード版
-このページの `index.html` をダウンロードし、ダブルクリックでブラウザから開いてください。
+**[最新版のダウンロードはこちら](https://github.com/koudaken77777-ship-it/xevious-editor/releases/latest)**
+「Assets」にある html ファイルをダウンロードし、ダブルクリックでブラウザから開いてください。インターネットにつながっていなくても動きます。
+各版の変更点も同じページで確認できます。
 
 ## はじめに必要なもの
 - **ファミコン版ゼビウスの純正ROM（.nes）**
