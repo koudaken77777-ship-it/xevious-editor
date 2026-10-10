@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.8</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.9</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.8</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.9</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4288,7 +4288,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.8";
+const EDITOR_RELEASE94 = "1.9";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -5904,11 +5904,13 @@ function restoreEventState(snap) {
   rom.set(snap.ptr0,ptr0); rom.set(snap.block0,b0);
   if(snap.airFF){ const airFfOff=fixedFileOffset(SINGLE_BAKURA_PAIR_ADDR65); rom.set(snap.airFF,airFfOff); }
   if(snap.bakuraHp66)bakuraHpTable66=Uint16Array.from(snap.bakuraHp66);
-  if(snap.domoRouteState74)restoreDomoRouteState74(snap.domoRouteState74,null);
+  // 正式版1.9: 2バンク構成では、bank1のイベントも先に戻してからドモグラムのルートを戻す
+  // （ルートの再表示が全AREAのイベントを読むため、bank1が古いままだと途中で読み取りエラーになり、bank1が戻らなかった）。
   if(dualEventMode && snap.ptr1 && snap.block1) {
     const ptr1=bankFileOffset(1,AREA_PTR_TABLE), b1=bankFileOffset(1,EVENT_BLOCK_START);
     rom.set(snap.ptr1,ptr1); rom.set(snap.block1,b1);
   }
+  if(snap.domoRouteState74)restoreDomoRouteState74(snap.domoRouteState74,null);
   selectedSolAddr=null; selectedGroundAddr=null; selectedCompositeAddr=null; selectedVehicleAddr=null; selectedSolAddr=null; selectedSpecialAddr=null;
   selectedSpecialAddr=null; selectedMessageAddr53=null; selectedAirAddr=null; selectedAirTemplate=null; selectedAirSourceArea=null; selectedAirSourceAddr=null; selectedAirCustom65=null; selectedAirBakuraHp66=null;
   drawGrid(); updateCapacity();
@@ -22790,6 +22792,10 @@ canvas.slotItem150{width:40px}
 .agmCell180.ag{background:#14303c;border-color:#7fe3ff;box-shadow:0 0 0 1px #7fe3ff inset}
 .agmCell180 .a{font-size:16px}
 @media(max-width:900px){.agmTimeline180{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* 正式版1.9: AGの攻撃の強さ */
+.agAtkRow190{margin-top:6px;padding-top:6px;border-top:1px dashed #555;font-size:13px}
+.agAtkRow190 select{margin-left:4px;padding:2px 4px;max-width:100%}
+.agAtkInfo190{margin-left:8px;color:#bcd;font-size:12px}
 .agTag153.cy{background:#7fe3ff}.agTag153.ye{background:#ffe066}.agTag153.ok{background:#7dff8a}.agTag153.ng{background:#ff8a8a}
 .agNote153{font-size:13px!important;color:#cfd8d2!important}
 .msgC155a,.msgC155b{display:block;width:370px;max-width:100%;height:auto;background:#151b17;border:2px solid #ffd400;border-radius:4px}
@@ -23202,7 +23208,7 @@ canvas.slotItem150{width:40px}
         +'<tr><td>$44</td><td>待ち時間（16フレーム＋ばらつき）</td><td>特定できず（後半の面でまれに使われる）</td></tr></table>'
         +'<p>たとえばログラムの待ち時間（$38）は、AREA 1の最初は$FFで<b>約1.6〜5.9秒ごとにばらばら</b>、AREA 16では$03で<b>ほぼ1.6秒ごとに規則正しく</b>撃ってきます。純正のゼビウスは、面が進むにつれてこれらの値を変えて、少しずつ攻撃を激しくしているのです。</p>'
         +'<p><b>■ 6. どうやって調べたの？（おまけ）</b><br>内蔵エミュレーターで「全エリア入りのROMでAREA 4まで進めたとき（撃つ）」と「AREA 4だけのテストROM（撃たない）」のメモリを比べると、<b>約400か所</b>の値が違っていました。そこから値を少しずつ入れ替えて、AGが撃つようになる場所を絞り込み、最後に残ったのが<b>$91番地のたった1か所</b>でした。ROMのプログラムを読むと、イベント$36〜$44が$91〜$98番地に値を書き込む処理（$CAF9〜）が見つかりました。</p>'
-        +'<p class="agNote153">※ 今のエディッタには、このスイッチを直接置く機能はまだありません。今後の版で、「選択AREAだけテストプレイ」でも本番と同じ値から始まるようにし、AGごとに攻撃の強さを選べるようにする予定です。</p></div>';
+        +'<p class="agNote153"><b>■ 7. エディッタでの設定（Ver1.9から）</b><br>・<b>「選択AREAだけテストプレイ」</b>は、前のAREAから引き継ぐ攻撃スイッチの値を自動で入れてから始まるので、<b>本番と同じようにAGや地上の敵が撃ってきます</b>。<br>・「編集」タブの<b>「大型地上物」</b>の欄にある<b>「🛸 このAREAのAGの攻撃」</b>で、AREAごとにAGの攻撃の強さ（撃たない／弱／中／強／最強）を選べます。選ぶと、AGの手前に攻撃スイッチ（$36）を、AGが画面を出たあとに元の値へ戻す$36を、エディッタが自動で置きます。AGを動かしたり消したりしても、自動で置き直します。<br>・AGと同じ画面にいるログラム・デロータなども同じスイッチを使うので、その間だけ一緒に攻撃の強さが変わります。</p></div>';
       const c=g.querySelector('.agmC180'); c.width=256; c.height=240; const x=c.getContext('2d'); x.imageSmoothingEnabled=false;
       const nesc=v=>{ try{ const q=NES_RGB[v&0x3F]; return `rgb(${q[0]},${q[1]},${q[2]})`; }catch(_){ return '#3cbcfc'; } };
       const im=new Image(); im.src=COMPOSITE_IMAGE_SOURCES_48[0x1A];
@@ -23778,6 +23784,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.9',items:['「選択AREAだけテストプレイ」で、前のAREAから引き継ぐ攻撃の設定（攻撃スイッチ）を自動で入れるようにしました。テストでも本番と同じようにアンドアジェネシスや地上の敵が弾を撃ってきます。','「大型地上物」の欄に「🛸 このAREAのAGの攻撃」を追加しました。AREAごとにアンドアジェネシスの攻撃の強さ（撃たない／弱／中／強／最強）を選べます。','「元に戻す」で、AREA 9〜16（イベントの2つ目の保存場所）の変更がうまく戻らず、エラーになることがある不具合を直しました。']},
     {v:'1.8',items:['「特徴・使い方」タブに「🔍 アンドアジェネシスの謎」を追加しました。置いただけのアンドアジェネシスが弾を撃たない理由（ずっと前のエリアで決まる攻撃スイッチ）を、ゲーム画面と図で詳しく紹介しています。']},
     {v:'1.7',items:['「地形を独立させる」の説明にある、AREAごとの共有地形の図を見やすくしました。共有している部分を赤い塗りから、地形が透けて見えるピンクの斜線に変え、共有しているAREAの数を斜線の間隔で表すようにしました。']},
     {v:'1.6',items:['新しい版が出た時のお知らせに「⬇ 今すぐダウンロード」ボタンを追加しました。1回押すだけで新しい版のファイルをダウンロードできます。','お知らせの中に、ダウンロードした後の使い方（開き方・データの引き継ぎ）を表示するようにしました。']},
@@ -23900,6 +23907,103 @@ function recordCustomIllu176(before,description){
     const b=cloneCustomIllu176();
     setTimeout(()=>recordCustomIllu176(b,'地上イラスト配置を全削除'),0);
   },true);
+})();
+</script>
+<script>
+// 正式版1.9: アンドアジェネシスの攻撃スイッチ。
+// イベント$36〜$44は$91〜$98（敵の攻撃パラメータ）へ値を書き、面をまたいで引き継がれる。$91が0だとAGは撃たない。
+//  (1) 「選択AREAだけ」のテストROMでは前のAREAを通らないので、前のAREAから引き継ぐ値をAREA先頭($FE)へ一時的に入れて出力する。
+//  (2) AREAごとに「AGの攻撃の強さ」を選べる。AGの起点に$36（選んだ値）、最後のAGの32行先に$36（元の値）を自動で置く。
+//      エディッタが置いた$36は4byte目（ゲームは読まない）を$A6/$A7にして純正の$36と区別する。
+const ATK_TYPES190=[0x36,0x38,0x3A,0x3C,0x3E,0x40,0x42,0x44];
+const AGM_SET190=0xA6, AGM_RST190=0xA7;
+const AG_LEVELS190=[['','純正どおり（前のAREAから引き継ぐ）'],['0','撃たない（$00）'],['48','弱：現れたときに少し撃つ（$30）'],['96','中：止まっている間ずっと撃つ（$60）'],['160','強：純正の後半の面と同じ（$A0）'],['255','最強：手前に来ても撃ち続ける（$FF）']];
+function isAgManaged190(r){ return r&&r.raw&&r.raw[1]===0x36&&r.raw.length>=4&&(r.raw[3]===AGM_SET190||r.raw[3]===AGM_RST190); }
+// areas[0..upto-1] を順に通ったあとの各攻撃パラメータ（イベントTYPE→値）
+function atkInherited190(areas,upto){
+  const v={}; for(const t of ATK_TYPES190) v[t]=0;
+  for(let i=0;i<upto&&i<areas.length;i++) for(const r of areas[i].records){ const t=r.raw[1]; if(ATK_TYPES190.includes(t)&&r.raw.length>=3) v[t]=r.raw[2]; }
+  return v;
+}
+// 自動$36を置き直す（commitEventMutation／保存前の補正から呼ばれる）
+function normalizeAgAttack190(areas){
+  let changed=0;
+  for(let ai=0;ai<areas.length;ai++){
+    const a=areas[ai], mine=a.records.filter(isAgManaged190);
+    const holder=mine.find(r=>r.raw[3]===AGM_SET190), level=holder?holder.raw[2]:null;
+    if(mine.length){ a.records=a.records.filter(r=>!isAgManaged190(r)); changed++; }
+    if(level===null) continue;
+    const anchors=a.records.filter(r=>r.raw[1]===0x1A).map(r=>r.raw[0]).sort((p,q)=>q-p);
+    if(!anchors.length) continue;
+    const clusters=[]; for(const y of anchors){ const c=clusters[clusters.length-1]; if(c&&y>=c.last-32) c.last=y; else clusters.push({first:y,last:y}); }
+    let seq=-5000;
+    for(const c of clusters){
+      const setY=Math.min(0xFE,c.first), rstY=Math.max(2,c.last-32);
+      // 元の値＝前のAREAまで＋このAREAで戻す位置より先にある（自動以外の）$36
+      let back=atkInherited190(areas,ai)[0x36];
+      for(const r of a.records){ if(r.raw[1]===0x36&&r.raw[0]>rstY) back=r.raw[2]; }
+      a.records.push({raw:[setY,0x36,level&0xFF,AGM_SET190],seq:seq++});
+      if(rstY<setY) a.records.push({raw:[rstY,0x36,back&0xFF,AGM_RST190],seq:seq++});
+    }
+    changed++;
+  }
+  return changed;
+}
+(function(){
+  const _norm=normalizeGroundPaletteInAreas35;
+  normalizeGroundPaletteInAreas35=function(areas){ let n=_norm(areas); try{ n+=normalizeAgAttack190(areas); }catch(e){ console.error(e); } return n; };
+  // (1) 選択AREAだけテストROM：前のAREAから引き継ぐ攻撃パラメータを一時的にAREA先頭へ入れる
+  const _mk=makeSelectedAreaTestCopy;
+  makeSelectedAreaTestCopy=function(src,area){
+    if(src!==rom||!(area>1)) return _mk(src,area);
+    let snap=null;
+    try{
+      const areas=readAllAreaRecords(), inh=atkInherited190(areas,area-1);
+      const add=ATK_TYPES190.filter(t=>t!==0x3C&&inh[t]);
+      if(!add.length) return _mk(src,area);
+      snap=snapshotEventState();
+      let seq=-9000; for(const t of add) areas[area-1].records.push({raw:[0xFE,t,inh[t]&0xFF,0x00],seq:seq++});
+      rebuildEventBlock(areas);
+      const info=_mk(rom,area);
+      info.atkInherited190=add.map(t=>`$${hex(t)}=$${hex(inh[t])}`).join(' ');
+      return info;
+    }catch(e){
+      console.error(e);
+      if(snap){ try{ restoreEventState(snap); }catch(_){} snap=null; }
+      setStatus('前のAREAから引き継ぐ攻撃の設定を入れられませんでした（イベント容量不足など）。このテストではAGや地上の敵が撃たないことがあります。','warn');
+      return _mk(src,area);
+    }finally{ if(snap) restoreEventState(snap); }
+  };
+  // (2) AREAごとのAG攻撃の強さ（大型地上物の欄）
+  const chk=document.getElementById('pal54Chk'); const box=chk&&chk.closest('div'); if(!box) return;
+  const row=document.createElement('div'); row.className='agAtkRow190';
+  row.innerHTML='<label title="このAREAのアンドアジェネシスが撃つ弾の量を選びます。AGの手前で攻撃スイッチ（イベント$36）を入れ、AGが画面を出たら元の値に戻します（エディッタが自動で置きます）"><b>🛸 このAREAのAGの攻撃：</b> <select id="agAtkSel190"></select></label> <span id="agAtkInfo190" class="agAtkInfo190"></span>';
+  box.appendChild(row);
+  const sel=row.querySelector('select'), info=row.querySelector('#agAtkInfo190');
+  for(const [v,l] of AG_LEVELS190){ const o=document.createElement('option'); o.value=v; o.textContent=l; sel.appendChild(o); }
+  function curArea(){ const a=parseInt(areaSel&&areaSel.value,10); return (a>=1&&a<=16)?a:0; }
+  function sync(){
+    const a=curArea(); sel.disabled=!rom||!a; if(!rom||!a){ sel.value=''; info.textContent=a?'':'AREA 1～16を選ぶと設定できます'; return; }
+    let areas; try{ areas=readAllAreaRecords(); }catch(_){ return; }
+    const recs=areas[a-1].records, h=recs.find(r=>isAgManaged190(r)&&r.raw[3]===AGM_SET190);
+    sel.value=h?String(h.raw[2]):''; if(sel.value===''&&h) sel.value='';
+    const nAg=recs.filter(r=>r.raw[1]===0x1A).length, inh=atkInherited190(areas,a-1)[0x36];
+    info.textContent=nAg?`AG ${nAg}体 / 前のAREAから引き継ぐ値 $${hex(inh)}${inh?'':'（撃たない）'}`:'このAREAにはAGがありません';
+  }
+  sel.addEventListener('change',()=>{
+    const a=curArea(); if(!rom||!a) return; const v=sel.value;
+    const ok=commitEventMutation(areas=>{
+      const recs=areas[a-1].records.filter(r=>!isAgManaged190(r));
+      if(v!==''){ if(!recs.some(r=>r.raw[1]===0x1A)) throw new Error('このAREAにはアンドアジェネシスがありません。先にAGを置いてから選んでください。'); recs.push({raw:[0xFE,0x36,parseInt(v,10)&0xFF,AGM_SET190],seq:-9999}); }
+      areas[a-1].records=recs;
+    },`AREA ${a}: AGの攻撃を「${sel.options[sel.selectedIndex].textContent}」に変更`);
+    if(ok) setStatus(`AREA ${a}: AGの攻撃を「${sel.options[sel.selectedIndex].textContent}」にしました。AGの手前とAGが出たあとに攻撃スイッチ（$36）を自動で置きました。`,'ok');
+    sync();
+  });
+  areaSel&&areaSel.addEventListener('change',()=>setTimeout(sync,0));
+  document.getElementById('fileInput')&&document.getElementById('fileInput').addEventListener('change',()=>setTimeout(sync,2500));
+  for(const id of ['undoBtn','redoBtn']){ const b=document.getElementById(id); if(b) b.addEventListener('click',()=>setTimeout(sync,0)); }
+  window.agAttackSync190=sync; setTimeout(sync,1500);
 })();
 </script>
 </body>
