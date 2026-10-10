@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.9</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.10</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.9</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.10</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -3104,7 +3104,8 @@ function installDomoRoutesRuntime74(out){
 function domoRoutePayloadForArea74(area,events){const slots=new Set();for(const raw of events||[]){if(raw[1]===0x4C){const sl=domoSlotFromParam74(raw[3]);if(sl>=0)slots.add(sl);}}const bindings=domoRouteBindings74.filter(b=>slots.has(b.slot)).map(b=>({...b}));return {routes:domoRoutes74.filter(r=>r.area===area).map(r=>({id:r.id,area:r.area,localId:domoRouteLocalId81(r),name:domoRouteLabel81(r),points:r.points.map(q=>({...q}))})),bindings};}
 function remapImportedDomoRoutes74(events,payload,targetArea){
   payload=payload||{};const proutes=Array.isArray(payload.routes)?payload.routes:[],pbind=Array.isArray(payload.bindings)?payload.bindings:[];if(proutes.length>DOMO_ROUTE_MAX_PER_AREA81)throw new Error(`面データのDOルートが${DOMO_ROUTE_MAX_PER_AREA81}本を超えています。`);const customEvents=events.filter(raw=>raw[1]===0x4C&&isCustomDomoParam74(raw[3]));if(customEvents.length>DOMO_ROUTE_MAX_DO_PER_AREA81)throw new Error(`面データのカスタムDOが${DOMO_ROUTE_MAX_DO_PER_AREA81}台を超えています。`);
-  if(!proutes.length){for(const raw of events)if(raw[1]===0x4C&&isCustomDomoParam74(raw[3]))raw[3]=0;return;}
+  // 正式版1.10: ルートの無い面（「純正の面に戻す」など）を読み込むときも、そのAREAの古いDOルートと割り当てを消す（以前は残ったままだった）。
+  if(!proutes.length){const oldIds=new Set(domoRoutes74.filter(r=>r.area===targetArea).map(r=>r.id));if(oldIds.size){domoRoutes74=domoRoutes74.filter(r=>r.area!==targetArea);domoRouteBindings74=domoRouteBindings74.filter(b=>!oldIds.has(b.routeId));if(oldIds.has(domoRouteSelectedId74))domoRouteSelectedId74=0;domoRoutesDirty74=true;}for(const raw of events)if(raw[1]===0x4C&&isCustomDomoParam74(raw[3]))raw[3]=0;return;}
   const oldAreaRouteIds=new Set(domoRoutes74.filter(r=>r.area===targetArea).map(r=>r.id));domoRoutes74=domoRoutes74.filter(r=>r.area!==targetArea);domoRouteBindings74=domoRouteBindings74.filter(b=>!oldAreaRouteIds.has(b.routeId));const idMap=new Map(),usedLocal=new Set();
   for(const r of proutes){const id=nextDomoRouteId74();let localId=r.localId|0;if(localId<1||localId>DOMO_ROUTE_MAX_PER_AREA81||usedLocal.has(localId)){localId=1;while(usedLocal.has(localId)&&localId<=DOMO_ROUTE_MAX_PER_AREA81)localId++;}if(localId>DOMO_ROUTE_MAX_PER_AREA81)throw new Error('面データのDOルート番号を割り当てできません。');usedLocal.add(localId);idMap.set(r.id,id);domoRoutes74.push({id,area:targetArea,localId,name:'R'+localId,points:simplifyDomoRoutePoints74(r.points||[])});}
   const tempAreas=readAllAreaRecords();tempAreas[targetArea-1].records=[];const slotMap=new Map();for(const b of pbind){const nr=idMap.get(b.routeId);if(!nr)continue;const sl=allocateDomoBinding74(nr,b.startX,b.startY,tempAreas);slotMap.set(b.slot,sl);tempAreas[targetArea-1].records.push({raw:[0x20,0x4C,Math.max(0,(b.startX|0)-8),domoParamFromSlot74(sl)],seq:9999});}
@@ -4288,7 +4289,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.9";
+const EDITOR_RELEASE94 = "1.10";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -23784,6 +23785,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.10',items:['「↩ 純正の面に戻す」を押しても、そのAREAに作ったドモグラムのルートが残ったままになる不具合を直しました。ルートの無い作りかけ面を読み込んだときも、古いルートが消えるようになりました。']},
     {v:'1.9',items:['「選択AREAだけテストプレイ」で、前のAREAから引き継ぐ攻撃の設定（攻撃スイッチ）を自動で入れるようにしました。テストでも本番と同じようにアンドアジェネシスや地上の敵が弾を撃ってきます。','「大型地上物」の欄に「🛸 このAREAのAGの攻撃」を追加しました。AREAごとにアンドアジェネシスの攻撃の強さ（撃たない／弱／中／強／最強）を選べます。','「元に戻す」で、AREA 9〜16（イベントの2つ目の保存場所）の変更がうまく戻らず、エラーになることがある不具合を直しました。']},
     {v:'1.8',items:['「特徴・使い方」タブに「🔍 アンドアジェネシスの謎」を追加しました。置いただけのアンドアジェネシスが弾を撃たない理由（ずっと前のエリアで決まる攻撃スイッチ）を、ゲーム画面と図で詳しく紹介しています。']},
     {v:'1.7',items:['「地形を独立させる」の説明にある、AREAごとの共有地形の図を見やすくしました。共有している部分を赤い塗りから、地形が透けて見えるピンクの斜線に変え、共有しているAREAの数を斜線の間隔で表すようにしました。']},
