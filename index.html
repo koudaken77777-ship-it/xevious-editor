@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.13</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.14</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.13</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.14</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4375,7 +4375,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.13";
+const EDITOR_RELEASE94 = "1.14";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -8363,6 +8363,9 @@ function installHighQualityNazca5401(out,src,prgEnd){
   // CHR allocator could reuse them. That produced gray squares/bars immediately after a
   // Zolbak/other ground target was destroyed while the Nazca CHR window was active.
   for(let id=0xE7;id<=0xF8;id++)keep(id);
+  // 正式版1.14: 壊したあとの跡（$DD6F: 上段 $C9 $CC / 下段 $B3 $B6）と $DE23/$DE65 が直接書く $DA $FF も守る。
+  //   $C9 $CC $DA $FF が漏れていたため、ナスカの鳥が映っている区間で地上物を壊すと跡が崩れていた。
+  keep(0xC9); keep(0xCC); keep(0xDA); keep(0xFF);
 
   // Protect only large-ground strips actually used in AREA7. This leaves enough CHR
   // room for the exact bird while keeping the placed GB/GD/AG/BO graphics intact.
@@ -23892,6 +23895,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.14',items:['ナスカの鳥の地上絵が画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れることがある不具合を直しました（Ver1.13で地上イラスト側に入れた修正を、ナスカの鳥にも入れました）。']},
     {v:'1.13',items:['上のタブに「🚀 自機」を追加しました。自機をソルバルウ（純正）・機体1・機体2の3種類から選べます。選んだ機体は、ROMの保存とテストプレイに反映されます（撃墜されたときの絵も変わります。色はソルバルウと同じなので、照準や弾の色は変わりません）。','地上イラストが画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れていた不具合を直しました。跡に使う部品を、イラスト用に書き換えないようにしました。']},
     {v:'1.12',items:['「DO走行ルート」に［ループに均等配置］ボタンを追加しました。ドモグラムは下に置いた台ほど先に出てくるため、見た目で均等に置いても走り出すと間隔がずれていました。このボタンを押すと、出てくるタイミングの差を計算に入れて、走り出したときに等間隔になる位置へ自動で並べ直します。','ループのドモグラムは、最初の角から同じ形で周回するようにしました（どこに置いても1周の形と時間が同じになります）。','地上イラストを置くときの警告や「MSG重なり」の表示で、長い文が横につぶれて読めなくなっていたのを直しました。収まらない分は折り返して表示します。']},
     {v:'1.11',items:['ドモグラムの周回ルート（ループ）で、上向きの線の上に置いたドモグラムが画面の上の外側に隠れたまま入ってこない問題を直しました。最初の1回だけ真下へ走って画面に入り、そのあとは輪だけをぐるぐる回ります。これに合わせて「⚠上向き」の警告はループでは出なくなりました。']},
