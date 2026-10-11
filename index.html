@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.14</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.15</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.14</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.15</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4375,7 +4375,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.14";
+const EDITOR_RELEASE94 = "1.15";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -5112,6 +5112,7 @@ const INDEP_LAYOUT126=[ // [page, X] for AREA 1..16 （AREA 7はナスカ互換�
   [0,0],[0,16],[0,32],[0,48], [2,16],[2,32],[2,0],[2,48], [8,0],[8,16],[8,32],[8,48], [6,0],[6,16],[6,32],[6,48]];
 let indepTerrain126=false;
 let invincibleRemoved134=false;
+let areaTestRemoved115=0; // 正式版1.15: AREAのみテストROMを読み込んだときのAREA番号（0=通常ROM）
 function detectIndepTerrain126(d){
   if(!d||d.length<HEADER+8*0x4000||d[4]!==8) return false;
   const o=HEADER+INDEP_SIG_BANK126*0x4000+(INDEP_SIG_ADDR126-0x8000);
@@ -9595,6 +9596,19 @@ function validateAndLoad(bytes,name) {
     const fixedStart=HEADER+(loadedPrgBanks-1)*0x4000, orig=[0xEE,0x11,0x06,0xE6,0x3B];
     for(const a of [0xCF04,0xEA61,0xEC24]){ const o=fixedStart+(a-0xC000); if([0,1,2,3,4].every(i=>rom[o+i]===0xEA)){ for(let i=0;i<5;i++) rom[o+i]=orig[i]; invincibleRemoved134=true; } }
   }
+  // 正式版1.15: AREAのみテストROM（_AREAxx_ONLY）を読み込んだ場合は、テスト用の書き換えを元に戻す。
+  //   $F43E: 純正 INC $90 / LDA $90（次のAREAへ） ← テスト用 LDA #(AREA-1) / STA $90（いつも同じAREA）
+  //   $FF35/$FF39: 開始時の地上物の地面の色（パレット2/3の色3）。テスト用はそのAREAの開始時の色に書き換えてある。
+  //   中身は全16AREAそろった通常のROMなので、全AREAを編集できるまま読み込み、そのAREAを選んだ状態で開く。
+  areaTestRemoved115=0;
+  if(loadedPrgBanks>=8){
+    const fixedStart=HEADER+(loadedPrgBanks-1)*0x4000, o=fixedStart+(0xF43E-0xC000);
+    if(rom[o]===0xA9 && rom[o+2]===0x85 && rom[o+3]===0x90 && rom[o+1]<=0x0F){
+      areaTestRemoved115=(rom[o+1]&0x0F)+1;
+      rom[o]=0xE6; rom[o+1]=0x90; rom[o+2]=0xA5; rom[o+3]=0x90;
+      rom[fixedStart+(0xFF35-0xC000)]=0x07; rom[fixedStart+(0xFF39-0xC000)]=0x11; // 純正の開始色（PAL54.BOOT）
+    }
+  }
   configureTerrainMode(detectExtendedTerrainLayout());
   // 自動修復前を基準にして、修復結果が「未保存変更」として見えるようにする。
   savedBaseline=nazcaUnsafeBaseline39 || rom.slice();
@@ -9679,6 +9693,8 @@ fileInput.addEventListener("change", async e=>{
     const pureInfo=inspectPureXeviousRom5542(raw);
     validateAndLoad(raw, f.name);
     if(invincibleRemoved134){ try{ setStatus(statusEl.textContent+' ／ 無敵テスト用ROMだったので、無敵を外して読み込みました（無敵にしたいときはチェックを入れて保存・テストしてください）。','warn'); }catch(_){} }
+    // 正式版1.15: AREAのみテストROMは、そのAREAを選んだ状態で開く。
+    if(areaTestRemoved115){ try{ const a=areaTestRemoved115; areaSel.value=String(a); areaSel.dispatchEvent(new Event('change')); setStatus(statusEl.textContent+` ／ AREA ${a} だけのテスト用ROMでした。全16AREAを読み込み、テスト用の設定（AREA ${a}をくり返す・開始時の地面の色）を元に戻しました。AREA ${a} を選んでいます。`,'warn'); }catch(_){} }
     // Ver.129: 読み込んだROMは自動でAREAごとに地形を独立させる（見た目は変わらない）。
     try{ if(!indepTerrain126){ const before=statusEl.textContent, cls=(statusEl.className.match(/\b(ok|warn|err)\b/)||['','ok'])[1]; if(enableIndepTerrain126(true)) setStatus(before+' ／ 地形をAREAごとに自動で独立させました（見た目は変わりません）。',cls); } }catch(eInd){ console.error(eInd); }
     if(seq===pureRomLoadSeq5544) setPureRomHeaderBadge5544(!!ipsBaseRom5315);
@@ -23895,6 +23911,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.15',items:['「AREA ◯のみ」で保存したテスト用ROMを読み込んだときは、そのAREAを選んだ状態で開くようにしました。','テスト用ROMに入っている「同じAREAをくり返す」「開始時の地面の色」の設定は、読み込むときに元に戻すようにしました（以前はそのまま残り、全エリア保存したROMがそのAREAから始まっていました）。全16AREAは今までどおり編集できます。マップのPALイベントはそのままです。']},
     {v:'1.14',items:['ナスカの鳥の地上絵が画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れることがある不具合を直しました（Ver1.13で地上イラスト側に入れた修正を、ナスカの鳥にも入れました）。']},
     {v:'1.13',items:['上のタブに「🚀 自機」を追加しました。自機をソルバルウ（純正）・機体1・機体2の3種類から選べます。選んだ機体は、ROMの保存とテストプレイに反映されます（撃墜されたときの絵も変わります。色はソルバルウと同じなので、照準や弾の色は変わりません）。','地上イラストが画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れていた不具合を直しました。跡に使う部品を、イラスト用に書き換えないようにしました。']},
     {v:'1.12',items:['「DO走行ルート」に［ループに均等配置］ボタンを追加しました。ドモグラムは下に置いた台ほど先に出てくるため、見た目で均等に置いても走り出すと間隔がずれていました。このボタンを押すと、出てくるタイミングの差を計算に入れて、走り出したときに等間隔になる位置へ自動で並べ直します。','ループのドモグラムは、最初の角から同じ形で周回するようにしました（どこに置いても1周の形と時間が同じになります）。','地上イラストを置くときの警告や「MSG重なり」の表示で、長い文が横につぶれて読めなくなっていたのを直しました。収まらない分は折り返して表示します。']},
