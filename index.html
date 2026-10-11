@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.10</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.11</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.10</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.11</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -2981,6 +2981,8 @@ function domoFirstHeading158(route,sx,sy){
 }
 function domoGoesUp158(route,sx,sy){const h=route?domoFirstHeading158(route,sx,sy):null;return !!(h&&h.dy<-0.5);}
 const DOMO_ENTER_FRAMES159=0x90;
+// 正式版1.11: 上向きで始まるループの入場（真下へ走る）コマ数。画面上で約64ドット入ってから輪へ向かう。
+const DOMO_LOOP_ENTER_FRAMES111=0x40;
 // Ver.159: 同じ上向きルートの複数台が画面の同じ高さに重ならないよう、先に出てくる（マップで下の）DOほど深く入れる。
 //   画面上で32ドットずつずれて、マップと同じ並び順の列になる。
 function domoEnterFramesBySlot159(used){
@@ -2989,7 +2991,8 @@ function domoEnterFramesBySlot159(used){
   for(const list of groups.values()){list.sort((a,b)=>b.startY-a.startY);list.forEach((b,i)=>m.set(b.slot,Math.max(0x40,0xB0-i*0x20)));}
   return m;
 }
-function domoRouteStartsUp158(route){const q=route&&route.points&&route.points[0];return !!(q&&isClosedDomoRoute78(route)&&domoGoesUp158(route,q.x,q.y));}
+// 正式版1.11: 上向きで始まるループも自動で画面に入るようになったので、警告は出さない。
+function domoRouteStartsUp158(route){return false;}
 function domoRouteUpEnter159(route){const q=route&&route.points&&route.points[0];return !!(q&&!isClosedDomoRoute78(route)&&domoGoesUp158(route,q.x,q.y));}
 const DOMO_UP_WARN158='⚠ このループは上向きで始まります。ドモグラムは画面の上の端から出てくるので、上向きに走っている間は画面の上の外側に留まって入ってきません。ループの最初の線を下向きか横向きにしてください（［向きを反転］でも直せます）。';
 function appendDomoMotion74(out,cmd,frames){frames=Math.max(0,Math.round(frames));while(frames>0){const n=Math.min(254,frames);out.push(cmd&31,n);frames-=n;}}
@@ -3003,7 +3006,18 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
   //   純正のDOスクリプトも多くが 00(下) 90～B0コマ → 10(上) の形。上へ走る間は画面上の高さがほぼ変わらず、
   //   地面が流れていくので道を上へ走って見える。ループは毎周この下り道を通ってしまうので対象外（警告のまま）。
   if(!closed&&domoGoesUp158(route,binding.startX,binding.startY)){appendDomoMotion74(out,0,enterFrames);cur.y+=0.5*enterFrames;}
-  if(closed){
+  // 正式版1.11: 上向きで始まるループは、最初の1回だけ真下へ走って画面に入り、次の角へ向かってから
+  //   その角を起点に周回する。最後の FF nn で周回の起点（nn バイト目）へ戻るので、下り道は毎周通らない。
+  const loopUp111=closed&&domoGoesUp158(route,binding.startX,binding.startY);let loopStart111=0;
+  if(loopUp111){
+    appendDomoMotion74(out,0,DOMO_LOOP_ENTER_FRAMES111);cur.y+=0.5*DOMO_LOOP_ENTER_FRAMES111;
+    const n=route.points.length,k=pr.seg+1;
+    targets.push(route.points[k]);
+    // 周回の部分は角 k から1周して角 k へ戻る（points[0] と points[n-1] は同じ場所）。
+    targets.push('LOOP');
+    for(let i=k+1;i<n;i++)targets.push(route.points[i]);
+    for(let i=1;i<=k;i++)targets.push(route.points[i]);
+  }else if(closed){
     // Start anywhere on the loop, travel once around in the drawn order, then return to the exact start projection.
     for(let i=pr.seg+1;i<route.points.length;i++)targets.push(route.points[i]);
     for(let i=1;i<=pr.seg;i++)targets.push(route.points[i]);
@@ -3022,6 +3036,7 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
     return best;
   }
   for(const t of targets){
+    if(t==='LOOP'){loopStart111=out.length;continue;}
     let dx=t.x-cur.x,dy=t.y-cur.y;if(Math.hypot(dx,dy)<1)continue;
     const best=bestCmdFor(dx,dy);if(best){const n=Math.max(0,Math.floor(best.dur));if(n){appendDomoMotion74(out,best.cmd,n);lastCmd=best.cmd;cur.x+=best.vx*n;cur.y+=best.vy*n;}}
     dx=t.x-cur.x;dy=t.y-cur.y;
@@ -3030,7 +3045,7 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
     if(Math.abs(dy)>=0.25){const cmd=dy>0?0:16,n=Math.max(1,Math.round(Math.abs(dy)*2));appendDomoMotion74(out,cmd,n);lastCmd=cmd;cur.y+=(dy>0?0.5:-0.5)*n;}
     cur={x:+t.x,y:+t.y};
   }
-  if(closed){out.push(0xFF,0x00);return Uint8Array.from(out);}
+  if(closed){if(out.length+2>256)throw new Error(`${domoRouteLabel81(route)}の周回ルートが長すぎます（${out.length+2}バイト / 最大256バイト）。輪を小さくするか、曲がり角を減らしてください。`);if(loopStart111>255)throw new Error(`${domoRouteLabel81(route)}の点が多すぎて周回データを作れません。曲がり角を減らしてください。`);out.push(0xFF,loopStart111);return Uint8Array.from(out);}
   // Open route: continue long enough in the final heading to leave the playfield safely.
   // Ver.158: 最後の位置合わせ（横/縦の小さな補正）の向きで走り続けてしまい、ゴール後に横や上へ曲がる不具合を修正。
   // ゴール後は、必ず最後の線の向きのまま走り抜ける。
@@ -3095,7 +3110,8 @@ function installDomoRoutesRuntime74(out){
   const pLo=DOMO_ROUTE_PTR_ADDR81&255,pHi=(DOMO_ROUTE_PTR_ADDR81>>8)&255;
   const helper=Uint8Array.from([0x48,0x29,0x01,0xD0,0x0F,0x68,0xA8,0xB9,0xD3,0xA8,0x9D,0x0A,0x05,0xB9,0xD4,0xA8,0x9D,0x0B,0x05,0x60,0x68,0x29,0xFE,0xA8,0xB9,pLo,pHi,0x9D,0x0A,0x05,0xB9,(pLo+1)&255,pHi,0x9D,0x0B,0x05,0x60]);writeDomoRuntimeBytes81(out,DOMO_ROUTE_INIT_HELPER_ADDR81,helper);
   const worldVec81=Uint8Array.from(DOMO_SCREEN_VECTORS74.flatMap(([x,y])=>[x&255,(x>>8)&255,y&255,(y>>8)&255]));writeDomoRuntimeBytes81(out,DOMO_ROUTE_VECTOR_ADDR81,worldVec81);
-  const routeStepHelper81=Uint8Array.from([189,10,5,133,4,189,11,5,133,5,132,44,189,1,5,168,177,4,72,165,5,201,96,144,30,201,112,176,26,104,201,255,208,22,160,0,177,4,157,2,5,200,177,4,157,9,5,169,2,157,1,5,164,44,96,104,157,2,5,200,177,4,157,9,5,254,1,5,254,1,5,164,44,96]);writeDomoRuntimeBytes81(out,DOMO_ROUTE_STEP_HELPER_ADDR81,routeStepHelper81);
+  // 正式版1.11: FF nn = スクリプトの nn バイト目へ戻る（従来は第2バイトを無視して常に先頭へ戻っていた。FF 00 は従来と同じ動作）。
+  const routeStepHelper81=Uint8Array.from([189,10,5,133,4,189,11,5,133,5,132,44,189,1,5,168,177,4,72,165,5,201,96,144,32,201,112,176,28,104,201,255,208,24,200,177,4,168,177,4,157,2,5,200,177,4,157,9,5,200,152,157,1,5,164,44,96,104,157,2,5,200,177,4,157,9,5,254,1,5,254,1,5,164,44,96]);if(routeStepHelper81.length>DOMO_ROUTE_VEC_HELPER_ADDR81-DOMO_ROUTE_STEP_HELPER_ADDR81)throw new Error('DOルート処理が次の領域へ重なります。');writeDomoRuntimeBytes81(out,DOMO_ROUTE_STEP_HELPER_ADDR81,routeStepHelper81);
   const routeVecHelper81=Uint8Array.from([189,11,5,201,96,144,24,201,112,176,20,169,0,133,19,185,DOMO_ROUTE_VECTOR_ADDR81&255,DOMO_ROUTE_VECTOR_ADDR81>>8,133,53,185,(DOMO_ROUTE_VECTOR_ADDR81+1)&255,DOMO_ROUTE_VECTOR_ADDR81>>8,133,54,10,144,2,198,19,96,169,0,133,19,185,131,201,133,53,185,132,201,133,54,10,144,2,198,19,96]);writeDomoRuntimeBytes81(out,DOMO_ROUTE_VEC_HELPER_ADDR81,routeVecHelper81);
   const stepOff78=fixedOff5400(DOMO_ROUTE_STEP_ADDR78),vecOff78=fixedOff5400(DOMO_ROUTE_VEC_ADDR78),stepCur78=out.slice(stepOff78,stepOff78+DOMO_ROUTE_STEP_ORIG78.length),vecCur78=out.slice(vecOff78,vecOff78+DOMO_ROUTE_VEC_ORIG78.length);
   if(!Array.from(stepCur78).every((v,i)=>v===DOMO_ROUTE_STEP_ORIG78[i])&&!Array.from(stepCur78).every((v,i)=>v===DOMO_ROUTE_STEP_PATCH78[i]))throw new Error('ドモグラムルート更新処理 $C7E7 が想定外です。');if(!Array.from(vecCur78).every((v,i)=>v===DOMO_ROUTE_VEC_ORIG78[i])&&!Array.from(vecCur78).every((v,i)=>v===DOMO_ROUTE_VEC_PATCH78[i]))throw new Error('ドモグラム移動ベクトル処理 $C80B が想定外です。');out.set(DOMO_ROUTE_STEP_PATCH78,stepOff78);out.set(DOMO_ROUTE_VEC_PATCH78,vecOff78);
@@ -3200,7 +3216,7 @@ function drawPlacedVehicleSprite44(ctx, e, selected=false) {
     ctx.fillStyle='rgba(255,220,170,.98)';
     ctx.fillText(doLabel, px, top+17);
     { const b158=(rr81&&e.customRouteSlot!=null)?domoBindingBySlot74(e.customRouteSlot):null;
-      if(b158&&isClosedDomoRoute78(rr81)&&domoGoesUp158(rr81,b158.startX,b158.startY)){ ctx.font='bold 8px sans-serif'; ctx.textBaseline='bottom'; ctx.strokeText('⚠上向き', px, top-1); ctx.fillStyle='#ff6b6b'; ctx.fillText('⚠上向き', px, top-1); } }
+      if(false&&b158&&isClosedDomoRoute78(rr81)&&domoGoesUp158(rr81,b158.startX,b158.startY)){ ctx.font='bold 8px sans-serif'; ctx.textBaseline='bottom'; ctx.strokeText('⚠上向き', px, top-1); ctx.fillStyle='#ff6b6b'; ctx.fillText('⚠上向き', px, top-1); } }
     ctx.restore();
   }
   if(selected) {
@@ -4289,7 +4305,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.10";
+const EDITOR_RELEASE94 = "1.11";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -7140,7 +7156,7 @@ function handleVehicleEditClick(ev) {
     },`AREA ${area}: ${route74?`ドモグラム(${domoRouteLabel81(route74)})` : vehicleDisplayNameRaw(raw)}を追加 Xpx=${loc.a} Y=${loc.y}`);
     if(placedOk&&route74)markDomoRouteDirty74();
     if(placedOk) cancelEnemyPlacement59('配置完了');
-    if(placedOk&&route74&&isClosedDomoRoute78(route74)&&domoGoesUp158(route74,loc.a+8,loc.y*8+8)) setStatus(`ドモグラム(${domoRouteLabel81(route74)})：${DOMO_UP_WARN158}`,'warn');
+    if(false&&placedOk&&route74&&isClosedDomoRoute78(route74)&&domoGoesUp158(route74,loc.a+8,loc.y*8+8)) setStatus(`ドモグラム(${domoRouteLabel81(route74)})：${DOMO_UP_WARN158}`,'warn');
   }
 }
 
@@ -23785,6 +23801,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.11',items:['ドモグラムの周回ルート（ループ）で、上向きの線の上に置いたドモグラムが画面の上の外側に隠れたまま入ってこない問題を直しました。最初の1回だけ真下へ走って画面に入り、そのあとは輪だけをぐるぐる回ります。これに合わせて「⚠上向き」の警告はループでは出なくなりました。']},
     {v:'1.10',items:['「↩ 純正の面に戻す」を押しても、そのAREAに作ったドモグラムのルートが残ったままになる不具合を直しました。ルートの無い作りかけ面を読み込んだときも、古いルートが消えるようになりました。']},
     {v:'1.9',items:['「選択AREAだけテストプレイ」で、前のAREAから引き継ぐ攻撃の設定（攻撃スイッチ）を自動で入れるようにしました。テストでも本番と同じようにアンドアジェネシスや地上の敵が弾を撃ってきます。','「大型地上物」の欄に「🛸 このAREAのAGの攻撃」を追加しました。AREAごとにアンドアジェネシスの攻撃の強さ（撃たない／弱／中／強／最強）を選べます。','「元に戻す」で、AREA 9〜16（イベントの2つ目の保存場所）の変更がうまく戻らず、エラーになることがある不具合を直しました。']},
     {v:'1.8',items:['「特徴・使い方」タブに「🔍 アンドアジェネシスの謎」を追加しました。置いただけのアンドアジェネシスが弾を撃たない理由（ずっと前のエリアで決まる攻撃スイッチ）を、ゲーム画面と図で詳しく紹介しています。']},
