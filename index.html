@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.12</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.13</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.12</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.13</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4375,7 +4375,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.12";
+const EDITOR_RELEASE94 = "1.13";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -8602,6 +8602,9 @@ function installCustomIllustrations5502(out,src,prgEnd){
   for(let id=0xE7;id<=0xF8;id++) visiblePat.add(id);
   // 48_55_64: animated LO/DE/BA/ZO BG frames confirmed by Headless comparison.
   visiblePat.add(0xB3); visiblePat.add(0xB6);
+  // 正式版1.13: 地上物を壊したあとの跡（$DD6F: 上段 $C9 $CC / 下段 $B3 $B6）と、$DE23/$DE65 が直接書く
+  //   $F2 $FF / $DA $EF も守る。$C9 $CC $DA $FF が漏れていたため、地上イラストの表示区間だけ跡の絵が崩れていた。
+  visiblePat.add(0xC9); visiblePat.add(0xCC); visiblePat.add(0xDA); visiblePat.add(0xFF);
 
   const chrOrig=src.slice(prgEnd,prgEnd+0x2000),bgOrig=chrOrig.slice(0x1000,0x2000),customBg=bgOrig.slice();
   const basePatMap=new Map();
@@ -23012,7 +23015,7 @@ canvas.slotItem150{width:40px}
   try{ if(toolbar.classList.contains('layout98')){ const rb=document.getElementById('layoutResetBtn98'); if(rb) rb.click(); } }catch(_){}
   const $=s=>document.querySelector(s), byId=id=>document.getElementById(id);
   const lab=inp=>inp?inp.closest('label'):null;
-  const TABS=[['file','📁 ファイル'],['edit','✏ 編集'],['play','🎮 テストプレイ'],['save','💾 ロムやマップの保存'],['ips','🧩 IPSからROM作成'],['other','📖 特徴・使い方']];
+  const TABS=[['file','📁 ファイル'],['edit','✏ 編集'],['play','🎮 テストプレイ'],['save','💾 ロムやマップの保存'],['ips','🧩 IPSからROM作成'],['ship','🚀 自機'],['other','📖 特徴・使い方']];
   const bar=document.createElement('div'); bar.className='tabBar130';
   const panels={};
   for(const [k,t] of TABS){ const b=document.createElement('button'); b.type='button'; b.dataset.tab=k; b.textContent=t; bar.appendChild(b); const p=document.createElement('div'); p.className='tabPanel130'; p.dataset.tab=k; panels[k]=p; }
@@ -23889,6 +23892,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.13',items:['上のタブに「🚀 自機」を追加しました。自機をソルバルウ（純正）・機体1・機体2の3種類から選べます。選んだ機体は、ROMの保存とテストプレイに反映されます（撃墜されたときの絵も変わります。色はソルバルウと同じなので、照準や弾の色は変わりません）。','地上イラストが画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れていた不具合を直しました。跡に使う部品を、イラスト用に書き換えないようにしました。']},
     {v:'1.12',items:['「DO走行ルート」に［ループに均等配置］ボタンを追加しました。ドモグラムは下に置いた台ほど先に出てくるため、見た目で均等に置いても走り出すと間隔がずれていました。このボタンを押すと、出てくるタイミングの差を計算に入れて、走り出したときに等間隔になる位置へ自動で並べ直します。','ループのドモグラムは、最初の角から同じ形で周回するようにしました（どこに置いても1周の形と時間が同じになります）。','地上イラストを置くときの警告や「MSG重なり」の表示で、長い文が横につぶれて読めなくなっていたのを直しました。収まらない分は折り返して表示します。']},
     {v:'1.11',items:['ドモグラムの周回ルート（ループ）で、上向きの線の上に置いたドモグラムが画面の上の外側に隠れたまま入ってこない問題を直しました。最初の1回だけ真下へ走って画面に入り、そのあとは輪だけをぐるぐる回ります。これに合わせて「⚠上向き」の警告はループでは出なくなりました。']},
     {v:'1.10',items:['「↩ 純正の面に戻す」を押しても、そのAREAに作ったドモグラムのルートが残ったままになる不具合を直しました。ルートの無い作りかけ面を読み込んだときも、古いルートが消えるようになりました。']},
@@ -24114,5 +24118,99 @@ function normalizeAgAttack190(areas){
   window.agAttackSync190=sync; setTimeout(sync,1500);
 })();
 </script>
+<style>
+.shipCard113{margin:0 auto;max-width:760px;padding:16px 18px;border:1px solid #555;border-radius:10px;background:rgba(30,30,30,.6)}
+.shipHead113{font-size:16px;font-weight:bold;margin-bottom:4px}
+.shipHead113 span{font-size:13px;font-weight:normal;color:#bbb;margin-left:6px}
+.shipList113{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 8px}
+.shipOpt113{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 12px;border:2px solid #555;border-radius:9px;background:#202020;color:#eee;cursor:pointer;font-size:14px;min-width:140px}
+.shipOpt113:hover{border-color:#999}
+.shipOpt113.on{border-color:#7dff9a;background:#163322;box-shadow:0 0 0 1px #7dff9a inset}
+.shipOpt113 canvas{image-rendering:pixelated;width:96px;height:96px;border-radius:4px}
+.shipOpt113 .row113{display:flex;gap:6px}
+.shipOpt113 .row113 canvas{width:48px;height:48px}
+.shipNote113{font-size:13px;color:#bbb;line-height:1.6}
+</style>
+<script>
+// 正式版1.13: 自機（ソルバルウ）の絵を3種類から選ぶ。
+//   純正ROMでは自機は スプライトのはんこ $28/$29/$2A/$2B（16×16、2×2、パレット2）で、CHRの $0280-$02BF の64バイト。
+//   保存・テストプレイ・自動保存の最後（Mapper 4 変換の後）に、CHR中の自機のはんこ（3種類のどれか）を選んだ機体へ差し替える。
+//   撃墜されたときの絵も同じはんこを使うので一緒に変わる。色はソルバルウのパレット（紺$02・赤$16・白$30）のまま。
+const SHIP_CHR113={
+  solvalou:[0x01,0x03,0x03,0x03,0x0F,0x0F,0x0F,0x1F,0x01,0x03,0x02,0x02,0x0E,0x07,0x0F,0x17,0x80,0xC0,0xC0,0xC0,0xF0,0x70,0xF0,0xF8,0x80,0xC0,0x40,0x40,0x70,0xE0,0xF0,0xD8,0x3F,0x7F,0xFF,0xFF,0xFE,0xFF,0xFB,0x23,0x2F,0x4F,0xAF,0xAF,0xAF,0xAF,0xA8,0x23,0xFC,0xFE,0xFF,0xFF,0x7F,0xFF,0xDF,0xC4,0xD4,0xD2,0xD5,0xD5,0xD5,0xD5,0x15,0xC4],
+  ship1:[0x00,0x00,0x01,0x11,0x1B,0x1F,0x3F,0x3F,0x00,0x00,0x01,0x11,0x13,0x15,0x35,0x3D,0x00,0x00,0x80,0x88,0xC8,0xFC,0xFC,0xFE,0x00,0x00,0x00,0x08,0x48,0x58,0x58,0x78,0x7B,0x67,0xCF,0xDF,0xFF,0xFF,0xE2,0x00,0x7D,0x7D,0x7D,0x7D,0x75,0x60,0x00,0x00,0xDE,0xE7,0xF3,0xFB,0xFF,0xFF,0x47,0x00,0x7C,0x7C,0x7E,0x7E,0x6E,0x46,0x00,0x00],
+  ship2:[0x00,0x00,0x00,0x41,0x41,0x41,0x45,0xCD,0x00,0x00,0x00,0x01,0x41,0x41,0x05,0x0F,0x00,0x00,0x00,0x82,0x82,0x82,0xA2,0xB3,0x00,0x00,0x00,0x80,0x82,0x82,0xA0,0xF0,0xDE,0xFE,0xF3,0xF7,0x7B,0x63,0x63,0x00,0x5F,0x5F,0x5F,0x5F,0x5B,0x43,0x43,0x00,0x7B,0x7F,0xCF,0xEF,0xDE,0xC6,0xC6,0x00,0xFA,0xFA,0xFA,0xFA,0xDA,0xC2,0xC2,0x00]
+};
+const SHIP_NAMES113={solvalou:'ソルバルウ（純正）',ship1:'機体1',ship2:'機体2'};
+const SHIP_PAL113=[0x02,0x16,0x30]; // スプライトパレット2の色1〜3
+let selectedShip113='solvalou';
+function shipChrRange113(bytes){
+  if(!bytes||bytes.length<HEADER+0x4000) return null;
+  const start=HEADER+bytes[4]*0x4000, end=Math.min(bytes.length,start+bytes[5]*0x2000);
+  return end>start?[start,end]:null;
+}
+function shipKeyAt113(bytes,off){
+  for(const k of Object.keys(SHIP_CHR113)){ const p=SHIP_CHR113[k]; let ok=true; for(let i=0;i<64;i++) if(bytes[off+i]!==p[i]){ok=false;break;} if(ok) return k; }
+  return null;
+}
+// CHRの中で、3種類どれかの自機のはんこが入っている場所（16バイト単位）を全部さがす。
+function findShipSlots113(bytes){
+  const r=shipChrRange113(bytes); if(!r) return [];
+  const res=[]; for(let o=r[0];o+64<=r[1];o+=16){ const k=shipKeyAt113(bytes,o); if(k) res.push({off:o,key:k}); }
+  return res;
+}
+function detectShip113(bytes){ const s=findShipSlots113(bytes); return s.length?s[0].key:null; }
+function applyShipToOutput113(out){
+  const slots=findShipSlots113(out);
+  if(!slots.length) return out;
+  const want=SHIP_CHR113[selectedShip113]||SHIP_CHR113.solvalou;
+  if(slots.every(s=>s.key===selectedShip113)) return out;
+  const res=out.slice(); for(const s of slots) res.set(want,s.off); return res;
+}
+// 保存・テストプレイ・自動保存の共通の最後の処理に差し込む。
+{ const _conv=maybeConvertOutputToMapper45400; maybeConvertOutputToMapper45400=function(src){ return applyShipToOutput113(_conv(src)); }; }
+// ROMを読み込んだら、入っている機体を選択状態にする。
+{ const _load=validateAndLoad; validateAndLoad=function(...a){ const r=_load.apply(this,a); try{ selectedShip113=detectShip113(rom)||'solvalou'; renderShipPicker113(); }catch(e){ console.warn('ship detect',e); } return r; }; }
+function drawShip113(canvas,key,bg){
+  const p=SHIP_CHR113[key], ctx=canvas.getContext('2d'); canvas.width=16; canvas.height=16;
+  ctx.fillStyle=bg; ctx.fillRect(0,0,16,16);
+  [[0,0],[8,0],[0,8],[8,8]].forEach(([ox,oy],t)=>{
+    for(let y=0;y<8;y++)for(let x=0;x<8;x++){
+      const lo=p[t*16+y],hi=p[t*16+8+y],v=((lo>>(7-x))&1)|(((hi>>(7-x))&1)<<1);
+      if(!v) continue; const c=NES_RGB[SHIP_PAL113[v-1]]; ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(ox+x,oy+y,1,1);
+    }
+  });
+}
+function renderShipPicker113(){
+  const list=document.getElementById('shipList113'); if(!list) return;
+  for(const b of list.querySelectorAll('.shipOpt113')) b.classList.toggle('on',b.dataset.ship===selectedShip113);
+}
+(function(){
+  const panel=document.querySelector('.tabPanel130[data-tab="ship"]'); if(!panel) return;
+  const card=document.createElement('div'); card.className='shipCard113';
+  card.innerHTML='<div class="shipHead113">🚀 自機の選択<span>保存したROMとテストプレイで、自機がこの絵になります</span></div><div class="shipList113" id="shipList113"></div>'
+    +'<div class="shipNote113">・色はソルバルウと同じ（紺・赤・白）なので、照準や弾の色は変わりません。<br>・撃墜されたときの絵も、選んだ機体になります。当たり判定は機体によらず同じです。<br>・選んだ機体はROMに書き込まれ、そのROMを読み込み直すと自動でこの欄に反映されます。</div>';
+  panel.appendChild(card);
+  const list=card.querySelector('#shipList113');
+  for(const k of Object.keys(SHIP_CHR113)){
+    const b=document.createElement('button'); b.type='button'; b.className='shipOpt113'; b.dataset.ship=k;
+    const big=document.createElement('canvas'); drawShip113(big,k,'#000');
+    const row=document.createElement('div'); row.className='row113';
+    const g=document.createElement('canvas'); drawShip113(g,k,'rgb(0,168,0)');
+    const s=document.createElement('canvas'); drawShip113(s,k,'rgb(252,160,68)');
+    row.append(g,s);
+    const name=document.createElement('div'); name.textContent=SHIP_NAMES113[k];
+    b.append(big,row,name); list.appendChild(b);
+    b.addEventListener('click',()=>{
+      if(!rom){ alert('先にROMを読み込んでください。'); return; }
+      selectedShip113=k; renderShipPicker113();
+      try{ scheduleResumeSave126(); }catch(_){}
+      setStatus(`自機を「${SHIP_NAMES113[k]}」にしました。ROMの保存とテストプレイに反映されます。`,'ok');
+    });
+  }
+  renderShipPicker113();
+})();
+</script>
+
 </body>
 </html>
