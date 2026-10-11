@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.11</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.12</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.11</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.12</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -1456,6 +1456,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
           <button type="button" id="domoRouteFinish74" disabled>ルート確定</button>
           <button type="button" id="domoRouteDelete74">ルート削除</button>
           <button type="button" id="domoRouteReverse158" title="選択中のルートのスタートとゴールを入れかえます（上向きのルートを下向きにするとき）">向きを反転</button>
+          <button type="button" id="domoRouteEven111" title="選択中のループに置いたドモグラムを、走り出したときに等間隔になる位置へ並べ直します（下に置いた台ほど先に出るぶんを計算に入れます）">ループに均等配置</button>
           <label style="display:inline-flex;align-items:center;gap:4px"><input id="domoRouteShow74" type="checkbox" checked> ルート表示</label>
           <span id="domoRouteInfo74" class="small" style="flex-basis:100%">各AREAでR1～R4まで作成できます。始点→曲がり角→終点だけクリックし、カスタムDOは1AREA最大8台です。</span>
         </div>
@@ -2889,7 +2890,7 @@ function renderDomoRouteUi74(){
   const areaRoutes=domoRoutes74.filter(r=>r.area===area).sort((a,b)=>domoRouteLocalId81(a)-domoRouteLocalId81(b));
   for(const r of areaRoutes){const o=document.createElement('option');o.value=String(r.id);o.textContent=`${domoRouteLabel81(r)} (${r.points.length}点${isClosedDomoRoute78(r)?'・ループ':''})`;sel.appendChild(o);}
   if(domoRouteById74(old)?.area===area)sel.value=String(old);else{domoRouteSelectedId74=0;sel.value='0';}
-  if(fin)fin.disabled=!domoRouteDrawing74;if(del)del.disabled=!(domoRouteSelectedId74>0);{const rv=document.getElementById('domoRouteReverse158');if(rv)rv.disabled=!(domoRouteSelectedId74>0)||!!domoRouteDrawing74;}
+  if(fin)fin.disabled=!domoRouteDrawing74;if(del)del.disabled=!(domoRouteSelectedId74>0);{const rv=document.getElementById('domoRouteReverse158');if(rv)rv.disabled=!(domoRouteSelectedId74>0)||!!domoRouteDrawing74;}{const ev=document.getElementById('domoRouteEven111'),sr=selectedDomoRoute74();if(ev)ev.disabled=!sr||!isClosedDomoRoute78(sr)||!!domoRouteDrawing74;}
   if(info){
     const customCount=rom&&area>=1&&area<=16?customDomoCountInArea81(readAllAreaRecords(),area):0;
     if(domoRouteDrawing74)info.textContent=`R作成中：${domoRouteDrawing74.points.length}点。AREA ${area}は最大R1～R4。最初の点がスタートです。`;
@@ -2996,7 +2997,9 @@ function domoRouteStartsUp158(route){return false;}
 function domoRouteUpEnter159(route){const q=route&&route.points&&route.points[0];return !!(q&&!isClosedDomoRoute78(route)&&domoGoesUp158(route,q.x,q.y));}
 const DOMO_UP_WARN158='⚠ このループは上向きで始まります。ドモグラムは画面の上の端から出てくるので、上向きに走っている間は画面の上の外側に留まって入ってきません。ループの最初の線を下向きか横向きにしてください（［向きを反転］でも直せます）。';
 function appendDomoMotion74(out,cmd,frames){frames=Math.max(0,Math.round(frames));while(frames>0){const n=Math.min(254,frames);out.push(cmd&31,n);frames-=n;}}
-function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
+// 正式版1.11: info を渡すと、ループの起点の角(info.k)、周回開始位置(info.loopStart)、
+//   各目標点に着いた時点のデータ位置(info.marks)を返す（均等配置のタイミング計算用）。
+function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159,info=null){
   const pr=nearestDomoRouteProjection74(route,binding.startX,binding.startY);
   if(!pr)throw new Error(`${domoRouteLabel81(route)}に有効な線がありません。`);
   const closed=isClosedDomoRoute78(route);
@@ -3006,26 +3009,20 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
   //   純正のDOスクリプトも多くが 00(下) 90～B0コマ → 10(上) の形。上へ走る間は画面上の高さがほぼ変わらず、
   //   地面が流れていくので道を上へ走って見える。ループは毎周この下り道を通ってしまうので対象外（警告のまま）。
   if(!closed&&domoGoesUp158(route,binding.startX,binding.startY)){appendDomoMotion74(out,0,enterFrames);cur.y+=0.5*enterFrames;}
-  // 正式版1.11: 上向きで始まるループは、最初の1回だけ真下へ走って画面に入り、次の角へ向かってから
-  //   その角を起点に周回する。最後の FF nn で周回の起点（nn バイト目）へ戻るので、下り道は毎周通らない。
-  const loopUp111=closed&&domoGoesUp158(route,binding.startX,binding.startY);let loopStart111=0;
-  if(loopUp111){
-    appendDomoMotion74(out,0,DOMO_LOOP_ENTER_FRAMES111);cur.y+=0.5*DOMO_LOOP_ENTER_FRAMES111;
+  // 正式版1.11: ループは「スタート位置 → 次の角 k」を最初の1回だけ走り、そこから角 k を起点に周回する。
+  //   最後の FF nn で周回の起点（nn バイト目）へ戻る。同じループの全DOが同じ周回データの形になるので、
+  //   1周のコマ数がそろい、均等配置の計算もできる。周回は角から角なので、スタート位置が線から少しずれていても毎周の形は変わらない。
+  //   上向きで始まるDOは、最初に真下へ走って画面に入ってから角 k へ向かう（下り道は毎周通らない）。
+  let loopStart111=0;
+  if(closed){
+    if(domoGoesUp158(route,binding.startX,binding.startY)){appendDomoMotion74(out,0,DOMO_LOOP_ENTER_FRAMES111);cur.y+=0.5*DOMO_LOOP_ENTER_FRAMES111;}
     const n=route.points.length,k=pr.seg+1;
+    if(info)info.k=k;
     targets.push(route.points[k]);
     // 周回の部分は角 k から1周して角 k へ戻る（points[0] と points[n-1] は同じ場所）。
     targets.push('LOOP');
     for(let i=k+1;i<n;i++)targets.push(route.points[i]);
     for(let i=1;i<=k;i++)targets.push(route.points[i]);
-  }else if(closed){
-    // Start anywhere on the loop, travel once around in the drawn order, then return to the exact start projection.
-    for(let i=pr.seg+1;i<route.points.length;i++)targets.push(route.points[i]);
-    for(let i=1;i<=pr.seg;i++)targets.push(route.points[i]);
-    // 48_55_79: do not end the loop at the geometric projection point.
-    // The event/spawn center is quantized by the game and can be a few pixels off the drawn line.
-    // Returning to the actual spawn center makes the net displacement of every lap ~zero,
-    // preventing that small mismatch from accumulating on every repeat.
-    targets.push({x:+binding.startX,y:+binding.startY});
   }else{
     const segEnd=route.points[pr.seg+1];if(segEnd)targets.push(segEnd);
     for(let i=pr.seg+2;i<route.points.length;i++)targets.push(route.points[i]);
@@ -3036,14 +3033,15 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
     return best;
   }
   for(const t of targets){
-    if(t==='LOOP'){loopStart111=out.length;continue;}
-    let dx=t.x-cur.x,dy=t.y-cur.y;if(Math.hypot(dx,dy)<1)continue;
+    if(t==='LOOP'){loopStart111=out.length;if(info){info.loopStart=out.length;info.marks=[];}continue;}
+    let dx=t.x-cur.x,dy=t.y-cur.y;if(Math.hypot(dx,dy)<1){if(info&&info.marks)info.marks.push(out.length);continue;}
     const best=bestCmdFor(dx,dy);if(best){const n=Math.max(0,Math.floor(best.dur));if(n){appendDomoMotion74(out,best.cmd,n);lastCmd=best.cmd;cur.x+=best.vx*n;cur.y+=best.vy*n;}}
     dx=t.x-cur.x;dy=t.y-cur.y;
     if(Math.abs(dx)>=0.25){const cmd=dx>0?8:24,n=Math.max(1,Math.round(Math.abs(dx)*2));appendDomoMotion74(out,cmd,n);lastCmd=cmd;cur.x+=(dx>0?0.5:-0.5)*n;}
     dy=t.y-cur.y;
     if(Math.abs(dy)>=0.25){const cmd=dy>0?0:16,n=Math.max(1,Math.round(Math.abs(dy)*2));appendDomoMotion74(out,cmd,n);lastCmd=cmd;cur.y+=(dy>0?0.5:-0.5)*n;}
     cur={x:+t.x,y:+t.y};
+    if(info&&info.marks)info.marks.push(out.length);
   }
   if(closed){if(out.length+2>256)throw new Error(`${domoRouteLabel81(route)}の周回ルートが長すぎます（${out.length+2}バイト / 最大256バイト）。輪を小さくするか、曲がり角を減らしてください。`);if(loopStart111>255)throw new Error(`${domoRouteLabel81(route)}の点が多すぎて周回データを作れません。曲がり角を減らしてください。`);out.push(0xFF,loopStart111);return Uint8Array.from(out);}
   // Open route: continue long enough in the final heading to leave the playfield safely.
@@ -3054,6 +3052,78 @@ function compileDomoRoute74(route,binding,enterFrames=DOMO_ENTER_FRAMES159){
     const L=Math.hypot(b.x-a.x,b.y-a.y);if(L>0&&(b.y-a.y)/L<-0.5)lastCmd=0;}
   appendDomoMotion74(out,(lastCmd===null?16:lastCmd),1020);
   return Uint8Array.from(out);
+}
+// 正式版1.12: ループに均等配置。
+//   ドモグラムは自分のスタート位置（イベントY）が画面の上端に来たときに出るので、下に置いた台ほど先に出て先に進む。
+//   スタート位置の高さ1ドットの差 = 出るタイミング2コマの差 = 周回上の位置0.5ドット×2コマぶんのずれ。
+//   そこで「全員が出そろった時点で周回上の位置が等間隔になる」スタート位置を、置ける場所（Yは16ドット単位）から選ぶ。
+function domoFramesOf111(bytes,from,to){let f=0;for(let j=from;j<to;j+=2)f+=bytes[j+1];return f;}
+// 角ごとの周回上の時刻（角 k に着いてからのコマ数）と1周のコマ数。
+function domoLoopTiming111(route){
+  const p0=route.points[0],info={},sc=compileDomoRoute74(route,{startX:p0.x,startY:p0.y},DOMO_ENTER_FRAMES159,info);
+  const n=route.points.length,k=info.k,order=[];
+  for(let i=k+1;i<n;i++)order.push(i);for(let i=1;i<=k;i++)order.push(i);
+  const tau=new Map();tau.set(k,0);
+  order.forEach((v,j)=>{if(v!==k)tau.set(v,domoFramesOf111(sc,info.loopStart,info.marks[j]));});
+  return {tau,lap:domoFramesOf111(sc,info.loopStart,info.marks[info.marks.length-1])};
+}
+// スタート位置(cx,cy)に置いたDOの周回上の位置（コマ単位。値が同じなら同じ場所を同時に走る）。
+function domoLoopPhase111(route,timing,cx,cy){
+  const info={},sc=compileDomoRoute74(route,{startX:cx,startY:cy},DOMO_ENTER_FRAMES159,info);
+  const pre=domoFramesOf111(sc,0,info.loopStart),t=timing.tau.get(info.k);
+  return ((t-pre+2*cy)%timing.lap+timing.lap)%timing.lap;
+}
+function domoLoopEvenCandidates111(route,timing){
+  let minY=Infinity,maxY=-Infinity;for(const q of route.points){minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);}
+  const out=[];
+  for(let cy=Math.max(24,Math.floor((minY-16)/16)*16+8);cy<=Math.min(2040,maxY+16);cy+=16){
+    for(let cx=8;cx<=248;cx+=4){
+      const pr=nearestDomoRouteProjection74(route,cx,cy);if(!pr)continue;const d=Math.sqrt(pr.d2);if(d>10)continue;
+      let phi;try{phi=domoLoopPhase111(route,timing,cx,cy);}catch(_e){continue;}
+      const up=domoGoesUp158(route,cx,cy);
+      // 上向きスタートは最初に真下へ寄り道するので少し避ける。線から離れた位置も少し避ける。
+      out.push({cx,cy,phi,pen:(up?24:0)+d});
+    }
+  }
+  return out;
+}
+function arrangeDomoLoopEvenly111(route){
+  if(!route||!isClosedDomoRoute78(route))throw new Error('周回ルート（ループ）を選んでください。');
+  const area=route.area|0,timing=domoLoopTiming111(route),lap=timing.lap;
+  const cands=domoLoopEvenCandidates111(route,timing);
+  const isMine=raw=>raw&&raw[1]===0x4C&&isCustomDomoParam74(raw[3])&&(domoBindingBySlot74(domoSlotFromParam74(raw[3]))||{}).routeId===route.id;
+  const N=readAllAreaRecords()[area-1].records.filter(r=>isMine(r.raw)).length;
+  if(N<2)throw new Error(`${domoRouteLabel81(route)}に置いたドモグラムが${N}台です。2台以上置いてから押してください。`);
+  if(cands.length<N)throw new Error(`${domoRouteLabel81(route)}が小さすぎて${N}台を並べる場所がありません。輪を大きくするか台数を減らしてください。`);
+  const step=lap/N,circ=(a,b)=>{const d=Math.abs(a-b)%lap;return Math.min(d,lap-d);};
+  let best=null;
+  for(let s=0;s<96;s++){
+    const phi0=step*s/96,used=new Set(),picks=[];let total=0,maxErr=0,ok=true;
+    for(let i=0;i<N;i++){
+      const target=(phi0+i*step)%lap;let bc=null,bs=Infinity;
+      for(const c of cands){const key=c.cx+','+c.cy;if(used.has(key))continue;const e=circ(c.phi,target),sc=e+c.pen;if(sc<bs){bs=sc;bc={c,e};}}
+      if(!bc){ok=false;break;}
+      used.add(bc.c.cx+','+bc.c.cy);picks.push(bc.c);total+=bs;maxErr=Math.max(maxErr,bc.e);
+    }
+    if(ok&&(!best||total<best.total))best={total,maxErr,picks};
+  }
+  if(!best)throw new Error('均等に並べる位置が見つかりませんでした。');
+  let applied=0;
+  const ok=commitEventMutation(areas=>{
+    const recs=areas[area-1].records.filter(r=>isMine(r.raw));
+    // 今の並び順をなるべく保つ（動かす距離の合計が最小になる回し方で割り当てる）。
+    const cur=recs.map(r=>({r,phi:domoLoopPhase111(route,timing,(r.raw[2]&255)+8,(r.raw[0]&255)*8+8)})).sort((a,b)=>a.phi-b.phi);
+    const picks=best.picks.slice().sort((a,b)=>a.phi-b.phi);
+    let rot=0,rotCost=Infinity;
+    for(let k=0;k<N;k++){let c=0;for(let i=0;i<N;i++){const p=picks[(i+k)%N],r=cur[i].r;c+=Math.hypot(p.cx-((r.raw[2]&255)+8),p.cy-((r.raw[0]&255)*8+8));}if(c<rotCost){rotCost=c;rot=k;}}
+    for(let i=0;i<N;i++){
+      const p=picks[(i+rot)%N],raw=cur[i].r.raw,oldSlot=domoSlotFromParam74(raw[3]);
+      const sl=allocateDomoBinding74(route.id,p.cx,p.cy,areas,oldSlot);
+      raw[0]=(p.cy-8)/8;raw[2]=p.cx-8;raw[3]=domoParamFromSlot74(sl);applied++;
+    }
+  },`AREA ${area}: ${domoRouteLabel81(route)}のドモグラム${N}台を均等配置`);
+  if(ok)markDomoRouteDirty74();
+  return {ok,n:applied,maxErrDots:best.maxErr/2,lapDots:lap/2};
 }
 function serializeDomoRoutes74(out){
   ensureDomoRouteLocalIds81();const prgEnd=HEADER+8*0x4000,off=prgEnd+DOMO_ROUTE_META_CHR_ABS81,end=prgEnd+DOMO_ROUTE_META_CHR_END81;if(end>out.length)throw new Error('XEVDO81ルート保存用CHR領域がありません。');out.fill(0xFF,off,end);const buf=[];for(const c of DOMO_ROUTE_META_SIG74)buf.push(c.charCodeAt(0));buf.push(2,domoRoutes74.length&255,domoRouteBindings74.length&255,domoRouteNextId74&255);
@@ -4305,7 +4375,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.11";
+const EDITOR_RELEASE94 = "1.12";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -4674,6 +4744,15 @@ document.getElementById("domoRouteReverse158")?.addEventListener("click",()=>{
   markDomoRouteDirty74(); renderDomoRouteUi74(); drawGrid();
   if(before&&typeof snapshotAreaProjectState5527==='function'&&typeof pushAreaProjectUndo5527==='function'){const after=snapshotAreaProjectState5527(before.mapBase);pushAreaProjectUndo5527(before,after,`DOルート ${domoRouteLabel81(r)} 向きを反転`);}
   setStatus(`${domoRouteLabel81(r)}の向きを反転しました。`+(domoRouteStartsUp158(r)?` まだ上向きです：${DOMO_UP_WARN158}`:' 保存するとゲームに反映されます。'),domoRouteStartsUp158(r)?'warn':'ok');
+});
+// 正式版1.12: ループに均等配置。
+document.getElementById("domoRouteEven111")?.addEventListener("click",()=>{
+  const r=selectedDomoRoute74(); if(!r||domoRouteDrawing74) return;
+  let res; try{ res=arrangeDomoLoopEvenly111(r); }catch(e){ alert(e.message); setStatus(e.message,'warn'); return; }
+  if(!res.ok) return;
+  renderDomoRouteUi74(); drawGrid();
+  const err=Math.round(res.maxErrDots*10)/10;
+  setStatus(`${domoRouteLabel81(r)}のドモグラム${res.n}台を、走り出したときに等間隔になる位置へ並べ直しました（1周 約${Math.round(res.lapDots)}ドット・ずれ最大 約${err}ドット）。元に戻すで取り消せます。`,'ok');
 });
 if(domoRouteShow74) domoRouteShow74.addEventListener("change",drawGrid);
 
@@ -6173,9 +6252,13 @@ function drawMessageSpacing111(area,x0){
     const y1=p.second.y*8, y2=p.first.y*8;
     gridCtx.fillStyle="rgba(255,120,60,.20)"; gridCtx.fillRect(x0,y1,256,y2-y1);
     const txt=`MSG重なり: M${(p.first.messageId|0)+1}(${p.seconds}秒)の表示中に次が始まる → ${p.need*8}ドット以上離す`;
-    const tw=gridCtx.measureText(txt).width+6;
-    gridCtx.fillStyle="rgba(0,0,0,.78)"; gridCtx.fillRect(x0+2,y1-14,Math.min(252,tw),13);
-    gridCtx.fillStyle="#ffb48a"; gridCtx.fillText(txt,x0+5,y1-2,246);
+    // 正式版1.11: 幅246へ押し縮めると文字がつぶれるので、収まらない分は折り返す。
+    const lines=[];let line='';
+    for(const ch of txt){ if(line&&gridCtx.measureText(line+ch).width>244){ lines.push(line); line=ch.trim()?ch:''; } else line+=ch; }
+    if(line) lines.push(line);
+    const tw=Math.max(...lines.map(s=>gridCtx.measureText(s).width))+6, bh=lines.length*12+1;
+    gridCtx.fillStyle="rgba(0,0,0,.78)"; gridCtx.fillRect(x0+2,y1-bh-1,Math.min(252,tw),bh);
+    gridCtx.fillStyle="#ffb48a"; lines.forEach((s,i)=>gridCtx.fillText(s,x0+5,y1-2-(lines.length-1-i)*12));
   }
   // 配置・移動中: 置けない位置では赤い注意、置ける時は「この先ここまで表示」の帯
   const h=messageHover53;
@@ -22604,11 +22687,16 @@ window.addEventListener('gamepaddisconnected',()=>{ if(emu86.open) emu86RefreshP
       const p=probeIllustrations113({illustrationId:img.id,area,x:pos[0],y:pos[1]}); if(!p) return;
       const bad=illustrationProbeBad113(p), text=(bad?'置けません：':'')+illustrationProbeText113(p);
       gridCtx.save(); gridCtx.font='bold 11px sans-serif'; gridCtx.textBaseline='middle'; gridCtx.textAlign='left';
-      const w=Math.min(250,gridCtx.measureText(text).width+12), x0=getAreaX(area)*META;
-      const bx=Math.max(x0+2,Math.min(pos[0]*META,x0+256-w-2)), by=Math.min(mapCanvas.height-20,pos[1]*META+img.height+4);
+      // 正式版1.11: 長い文を最大幅へ押し縮めて1行に描いていたため、文字が横につぶれて読めなかった。幅に収まらない分は折り返す。
+      const maxTextW=238,lines=[];let line='';
+      for(const ch of text){ if(line&&gridCtx.measureText(line+ch).width>maxTextW){ lines.push(line); line=ch.trim()?ch:''; } else line+=ch; }
+      if(line) lines.push(line);
+      const lineH=14,h=lines.length*lineH+5;
+      const w=Math.min(250,Math.max(...lines.map(s=>gridCtx.measureText(s).width))+12), x0=getAreaX(area)*META;
+      const bx=Math.max(x0+2,Math.min(pos[0]*META,x0+256-w-2)), by=Math.max(0,Math.min(mapCanvas.height-h-2,pos[1]*META+img.height+4));
       gridCtx.fillStyle=bad?'rgba(120,0,0,.94)':'rgba(8,48,24,.92)'; gridCtx.strokeStyle=bad?'#ff6b6b':'#7dff9a'; gridCtx.lineWidth=1.5;
-      gridCtx.beginPath(); if(gridCtx.roundRect) gridCtx.roundRect(bx,by,w,18,4); else gridCtx.rect(bx,by,w,18); gridCtx.fill(); gridCtx.stroke();
-      gridCtx.fillStyle=bad?'#fff':'#d8ffe2'; gridCtx.fillText(text,bx+6,by+9.5,w-10);
+      gridCtx.beginPath(); if(gridCtx.roundRect) gridCtx.roundRect(bx,by,w,h,4); else gridCtx.rect(bx,by,w,h); gridCtx.fill(); gridCtx.stroke();
+      gridCtx.fillStyle=bad?'#fff':'#d8ffe2'; lines.forEach((s,i)=>gridCtx.fillText(s,bx+6,by+2.5+lineH/2+i*lineH));
       gridCtx.restore();
     }catch(e){ console.warn('illustration probe note',e); }
   };
@@ -23801,6 +23889,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.12',items:['「DO走行ルート」に［ループに均等配置］ボタンを追加しました。ドモグラムは下に置いた台ほど先に出てくるため、見た目で均等に置いても走り出すと間隔がずれていました。このボタンを押すと、出てくるタイミングの差を計算に入れて、走り出したときに等間隔になる位置へ自動で並べ直します。','ループのドモグラムは、最初の角から同じ形で周回するようにしました（どこに置いても1周の形と時間が同じになります）。','地上イラストを置くときの警告や「MSG重なり」の表示で、長い文が横につぶれて読めなくなっていたのを直しました。収まらない分は折り返して表示します。']},
     {v:'1.11',items:['ドモグラムの周回ルート（ループ）で、上向きの線の上に置いたドモグラムが画面の上の外側に隠れたまま入ってこない問題を直しました。最初の1回だけ真下へ走って画面に入り、そのあとは輪だけをぐるぐる回ります。これに合わせて「⚠上向き」の警告はループでは出なくなりました。']},
     {v:'1.10',items:['「↩ 純正の面に戻す」を押しても、そのAREAに作ったドモグラムのルートが残ったままになる不具合を直しました。ルートの無い作りかけ面を読み込んだときも、古いルートが消えるようになりました。']},
     {v:'1.9',items:['「選択AREAだけテストプレイ」で、前のAREAから引き継ぐ攻撃の設定（攻撃スイッチ）を自動で入れるようにしました。テストでも本番と同じようにアンドアジェネシスや地上の敵が弾を撃ってきます。','「大型地上物」の欄に「🛸 このAREAのAGの攻撃」を追加しました。AREAごとにアンドアジェネシスの攻撃の強さ（撃たない／弱／中／強／最強）を選べます。','「元に戻す」で、AREA 9〜16（イベントの2つ目の保存場所）の変更がうまく戻らず、エラーになることがある不具合を直しました。']},
