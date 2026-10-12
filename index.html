@@ -86,7 +86,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.15</title>
+<title>レトロゲームファンオリジナルゼビウスエディッタ | ゼビウスエディッタ正式版 Ver1.16</title>
 <meta name="author" content="レトロゲームファン (@RETROGAME77)">
 <meta name="creator" content="レトロゲームファン (@RETROGAME77)">
 <style>
@@ -1113,7 +1113,7 @@ body.areaCompact #mapWrap{margin-left:auto;margin-right:auto}
 <body>
 <header>
   <div class="headerTitleRow">
-    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.15</h1>
+    <h1><a class="creatorLink" href="https://www.youtube.com/@RETROGAME77" target="_blank" rel="noopener noreferrer" title="レトロゲームファン YouTubeチャンネルを開く">レトロゲームファンオリジナルゼビウスエディッタ</a><span class="creatorSep">｜</span>ゼビウスエディッタ正式版 Ver1.16</h1>
     <div class="capacityDock titleCapacityDock" title="4byteイベント換算の追加可能目安">
       <span id="capacity" class="badge">追加目安: -</span>
       <span id="pureRomHeaderBadge5544" class="pureRomHeaderBadge5544">純正ゼビウスROM登録完了 (CRC32 4D1E2E76)</span>
@@ -4375,7 +4375,7 @@ const EDITOR_VERSION = 48;
 // 保存ファイル名は Xevious_Editor_<バージョン>_<年月日>_<時分秒>[_AREAxx_ONLY][_INV_TEST].nes / .ips
 // Ver.157: 保存ファイル名の版番号を画面タイトル（Ver.xxx）から自動で取る。版を上げるたびに書き換え忘れないように。
 // 正式版の版番号。保存ROM名・不具合報告の版表示に使う。小さな更新は 1.1, 1.2… と上げる。
-const EDITOR_RELEASE94 = "1.15";
+const EDITOR_RELEASE94 = "1.16";
 function saveTimestamp94(){
   const d=new Date(), p=n=>String(n).padStart(2,"0");
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
@@ -12193,7 +12193,7 @@ function pal54BuildCtx(areas){
   for(let i=0;i<16;i++){
     start.push(st.slice());
     const recs=((areas[i]&&areas[i].records)||[]).map((r,k)=>({r,k}))
-      .filter(o=>o.r.raw && o.r.raw.length>=4 && o.r.raw[1]===PAL54.TYPE)
+      .filter(o=>o.r.raw && o.r.raw.length>=4 && o.r.raw[1]===PAL54.TYPE && !(o.r.raw[0]&1)) // 正式版1.16: Yが奇数のPALはゲームで実行されないので色の計算に入れない
       .map(o=>({y:o.r.raw[0],c2:o.r.raw[2],c3:o.r.raw[3],seq:(o.r.seq!==undefined?o.r.seq:o.k)}))
       .sort((a,b)=>(b.y-a.y)||(a.seq-b.seq));
     pals.push(recs);
@@ -12769,7 +12769,9 @@ function pal54DrawOverlay(){
     gridCtx.font="bold 9px sans-serif"; gridCtx.textAlign="right"; gridCtx.textBaseline="bottom";
     gridCtx.fillStyle=p.auto?"#ffb0ff":(p.original?"#ffe58a":"#ffc078");
     const palKind=p.auto?"自動":(p.original?"既存":"手動");
-    const palTxt=`PAL ${pal54ColName(p.c2)}/${pal54ColName(p.c3)} ${hex(p.c2)}/${hex(p.c3)} ${palKind}`;
+    const palOdd116=(p.y&1)===1; // 正式版1.16: Yが奇数のPALは読み飛ばされる
+    if(palOdd116) gridCtx.fillStyle="#ff6b6b";
+    const palTxt=`PAL ${pal54ColName(p.c2)}/${pal54ColName(p.c3)} ${hex(p.c2)}/${hex(p.c3)} ${palKind}`+(palOdd116?' ⚠Y奇数で無効':'');
     const palRight=x0+w-4,palTw=gridCtx.measureText(palTxt).width,palChipX=Math.max(x0+3,palRight-palTw-22);
     palDrawChip5519(gridCtx,palChipX,py-10,p.c2,8);palDrawChip5519(gridCtx,palChipX+10,py-10,p.c3,8);
     gridCtx.fillText(palTxt,palRight,py-1);
@@ -12848,7 +12850,9 @@ function palSetColorControls5518(c2,c3){
 function palLocationFromPixel5518(area,px,py){
   const x0=getAreaX(area)*META;
   if(px<x0||px>=x0+256)throw new Error('選択AREAの黄色い範囲内をクリックしてください。');
-  const y=Math.max(1,Math.min(255,Math.round(py/8)));
+  // 正式版1.16: ゲームは「スクロール位置&$FE」とYを比べるので、Yが奇数のイベントは実行されない。
+  //   ほかのイベントと同じく16ドット単位（Yは偶数）にそろえる。
+  const y=Math.max(2,Math.min(254,Math.round(py/16)*2));
   assertEventYReachable30(area,y);
   return {y,worldY:y*8};
 }
@@ -23911,6 +23915,7 @@ canvas.slotItem150{width:40px}
   const CHECK_EVERY_MS=12*60*60*1000;
   // 新しい版を出す時は、ここに先頭へ1件追加する。
   const CHANGELOG=[
+    {v:'1.16',items:['PALイベントを置く・動かすとき、Yを必ず偶数（16ドット単位）にそろえるようにしました。ゲームはYが奇数のイベントを読み飛ばすため、以前の版で奇数の位置に置いたPALは実行されず、地面の色が切り替わっていませんでした。','すでにYが奇数の位置にあるPALは、マップ上で赤い文字になり「⚠Y奇数で無効」と表示します（自動では動かしません）。色ずれのチェックも、実行されないPALを除いて計算するようにしました。']},
     {v:'1.15',items:['「AREA ◯のみ」で保存したテスト用ROMを読み込んだときは、そのAREAを選んだ状態で開くようにしました。','テスト用ROMに入っている「同じAREAをくり返す」「開始時の地面の色」の設定は、読み込むときに元に戻すようにしました（以前はそのまま残り、全エリア保存したROMがそのAREAから始まっていました）。全16AREAは今までどおり編集できます。マップのPALイベントはそのままです。']},
     {v:'1.14',items:['ナスカの鳥の地上絵が画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れることがある不具合を直しました（Ver1.13で地上イラスト側に入れた修正を、ナスカの鳥にも入れました）。']},
     {v:'1.13',items:['上のタブに「🚀 自機」を追加しました。自機をソルバルウ（純正）・機体1・機体2の3種類から選べます。選んだ機体は、ROMの保存とテストプレイに反映されます（撃墜されたときの絵も変わります。色はソルバルウと同じなので、照準や弾の色は変わりません）。','地上イラストが画面に映っている区間で、地上物を壊したあとの跡（黒い穴）が別の絵に崩れていた不具合を直しました。跡に使う部品を、イラスト用に書き換えないようにしました。']},
